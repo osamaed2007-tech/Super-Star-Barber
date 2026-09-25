@@ -5,17 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>تم الحجز - Super Star</title>
   <style>
-    body { margin: 0; font-family: Arial, sans-serif; background: #0f172a; display: flex; justify-content: center; align-items: flex-start; padding-top: 60px; }
-    .card { background: white; width: 320px; padding: 30px 25px; border-radius: 12px; text-align: center; }
+    body { margin: 0; font-family: Arial, sans-serif; background: linear-gradient(160deg, #0d1b2a, #1b2838); display: flex; justify-content: center; align-items: flex-start; padding-top: 60px; min-height: 100vh; }
+    .card { background: white; width: 320px; padding: 30px 25px; border-radius: 14px; text-align: center; }
     .icon { font-size: 45px; margin-bottom: 10px; }
     h2 { color: #111; margin-bottom: 5px; }
     p.sub { color: #666; font-size: 13px; margin-bottom: 20px; }
-    .code-box { background: #f3f4f6; border: 2px dashed #2563eb; border-radius: 10px; padding: 15px; margin-bottom: 20px; }
+    .queue-box { background: #0d1b2a; color: white; border-radius: 10px; padding: 15px; margin-bottom: 15px; }
+    .queue-box span { font-size: 12px; opacity: 0.8; display: block; margin-bottom: 5px; }
+    .queue-box b { font-size: 28px; }
+    .code-box { background: #f3f4f6; border: 2px dashed #0d1b2a; border-radius: 10px; padding: 15px; margin-bottom: 20px; }
     .code-box span { font-size: 12px; color: #666; display: block; margin-bottom: 5px; }
-    .code-box b { font-size: 22px; color: #2563eb; letter-spacing: 1px; }
+    .code-box b { font-size: 22px; color: #0d1b2a; letter-spacing: 1px; }
     .details { text-align: right; background: #fafafa; border-radius: 8px; padding: 12px 15px; margin-bottom: 15px; }
     .details p { display: flex; justify-content: space-between; margin: 6px 0; font-size: 14px; color: #333; }
-    a { display: block; margin-top: 10px; font-size: 13px; color: #2563eb; text-decoration: none; }
+    a { display: block; margin-top: 10px; font-size: 13px; color: #0d1b2a; text-decoration: none; }
   </style>
 </head>
 <body>
@@ -23,6 +26,11 @@
     <div class="icon">✅</div>
     <h2>تم الحجز بنجاح</h2>
     <p class="sub">احتفظ بالكود ده، ممكن يتطلب منك عند الحضور</p>
+
+    <div class="queue-box">
+      <span>ترتيبك في الطابور النهاردة</span>
+      <b id="queueText"></b>
+    </div>
 
     <div class="code-box">
       <span>كود الحجز</span>
@@ -41,6 +49,8 @@
 
   <script>
     const params = new URLSearchParams(window.location.search);
+    const queue = params.get('queue') || '-';
+    document.getElementById('queueText').textContent = `رقم ${queue}`;
     document.getElementById('codeText').textContent = params.get('code') || '-';
     document.getElementById('nameText').textContent = params.get('name') || '-';
     document.getElementById('phoneText').textContent = params.get('phone') || '-';
