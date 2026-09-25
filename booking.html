@@ -6,67 +6,17 @@
   <title>حجز موعد - Super Star</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0f172a;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      padding-top: 60px;
-    }
-    .card {
-      background: white;
-      width: 320px;
-      padding: 30px 25px;
-      border-radius: 12px;
-      text-align: center;
-    }
-    .icon {
-      width: 60px;
-      height: 60px;
-      background: #2563eb;
-      border-radius: 14px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin: 0 auto 15px;
-      font-size: 28px;
-    }
+    body { margin: 0; font-family: Arial, sans-serif; background: #0f172a; display: flex; justify-content: center; align-items: flex-start; padding-top: 60px; }
+    .card { background: white; width: 320px; padding: 30px 25px; border-radius: 12px; text-align: center; }
+    .icon { width: 60px; height: 60px; background: #2563eb; border-radius: 14px; display: flex; justify-content: center; align-items: center; margin: 0 auto 15px; font-size: 28px; }
     h2 { color: #111; margin-bottom: 5px; }
     p { color: #666; font-size: 13px; margin-bottom: 20px; }
     label { display: block; text-align: right; margin-bottom: 5px; font-size: 14px; }
-    input {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 15px;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      box-sizing: border-box;
-      text-align: right;
-    }
-    button {
-      width: 100%;
-      padding: 12px;
-      background: #2563eb;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      font-size: 16px;
-    }
+    input { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; text-align: right; }
+    button { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 6px; font-size: 16px; }
     button:disabled { background: #93c5fd; }
-    a {
-      display: block;
-      margin-top: 12px;
-      font-size: 13px;
-      color: #2563eb;
-      text-decoration: none;
-    }
-    #message {
-      margin-top: 15px;
-      font-size: 14px;
-      font-weight: bold;
-    }
+    a { display: block; margin-top: 12px; font-size: 13px; color: #2563eb; text-decoration: none; }
+    #message { margin-top: 15px; font-size: 14px; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -94,10 +44,21 @@
     const messageEl = document.getElementById('message');
     const submitBtn = document.getElementById('submitBtn');
 
+    function generateCode(phone, dateObj) {
+      const last4 = phone.slice(-4);
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const hours = String(dateObj.getHours()).padStart(2, '0');
+      const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+      return `SS-${last4}-${day}${month}-${hours}${minutes}`;
+    }
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const name = document.getElementById('name').value.trim();
       const phone = document.getElementById('phone').value.trim();
+      const now = new Date();
+      const code = generateCode(phone, now);
 
       submitBtn.disabled = true;
       submitBtn.textContent = "جاري الحجز...";
@@ -105,19 +66,25 @@
 
       const { error } = await supabaseClient
         .from('bookings')
-        .insert([{ name: name, phone: phone }]);
+        .insert([{ name: name, phone: phone, code: code }]);
 
       if (error) {
         messageEl.style.color = "red";
         messageEl.textContent = "حصل خطأ، حاول تاني";
+        submitBtn.disabled = false;
+        submitBtn.textContent = "تأكيد الحجز";
       } else {
-        messageEl.style.color = "green";
-        messageEl.textContent = "تم الحجز بنجاح! هنتواصل معاك قريبًا";
-        form.reset();
+        const dateStr = now.toLocaleDateString('ar-EG');
+        const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+        const params = new URLSearchParams({
+          code: code,
+          name: name,
+          phone: phone,
+          date: dateStr,
+          time: timeStr
+        });
+        window.location.href = `confirmation.html?${params.toString()}`;
       }
-
-      submitBtn.disabled = false;
-      submitBtn.textContent = "تأكيد الحجز";
     });
   </script>
 </body>
