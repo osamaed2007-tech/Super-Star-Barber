@@ -8,11 +8,12 @@
   <style>
     body { margin: 0; font-family: Arial, sans-serif; background: #f3f4f8; padding: 20px; }
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    h2 { color: #1e3a8a; margin: 0; }
+    h2 { color: #0d1b2a; margin: 0; }
     button.logout { background: #dc2626; color: white; border: none; padding: 8px 14px; border-radius: 6px; }
     .booking-card { background: white; border-radius: 10px; padding: 15px; margin-bottom: 12px; box-shadow: 0 1px 5px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; }
     .info b { display: block; font-size: 16px; }
-    .info span { font-size: 13px; color: #666; }
+    .info span { font-size: 13px; color: #666; display: block; }
+    .info .time { color: #0d1b2a; font-weight: bold; margin-top: 4px; }
     .delete-btn { background: #f3f4f6; border: none; color: #dc2626; padding: 8px 12px; border-radius: 6px; }
     #loading { text-align: center; color: #666; margin-top: 40px; }
   </style>
@@ -60,15 +61,21 @@
         return;
       }
 
-      listEl.innerHTML = data.map(b => `
+      listEl.innerHTML = data.map(b => {
+        const d = new Date(b.created_at);
+        const dateStr = d.toLocaleDateString('ar-EG');
+        const timeStr = d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+        return `
         <div class="booking-card">
           <div class="info">
             <b>${b.name}</b>
             <span>${b.phone}</span>
+            <span class="time">${dateStr} - ${timeStr}</span>
           </div>
           <button class="delete-btn" onclick="deleteBooking(${b.id})">حذف</button>
         </div>
-      `).join('');
+      `;
+      }).join('');
     }
 
     async function deleteBooking(id) {
