@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>حجز موعد - Super Star</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body {
       margin: 0;
@@ -32,21 +33,9 @@
       margin: 0 auto 15px;
       font-size: 28px;
     }
-    h2 {
-      color: #111;
-      margin-bottom: 5px;
-    }
-    p {
-      color: #666;
-      font-size: 13px;
-      margin-bottom: 20px;
-    }
-    label {
-      display: block;
-      text-align: right;
-      margin-bottom: 5px;
-      font-size: 14px;
-    }
+    h2 { color: #111; margin-bottom: 5px; }
+    p { color: #666; font-size: 13px; margin-bottom: 20px; }
+    label { display: block; text-align: right; margin-bottom: 5px; font-size: 14px; }
     input {
       width: 100%;
       padding: 10px;
@@ -65,12 +54,18 @@
       border-radius: 6px;
       font-size: 16px;
     }
+    button:disabled { background: #93c5fd; }
     a {
       display: block;
       margin-top: 12px;
       font-size: 13px;
       color: #2563eb;
       text-decoration: none;
+    }
+    #message {
+      margin-top: 15px;
+      font-size: 14px;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -79,14 +74,51 @@
     <div class="icon">💈</div>
     <h2>Super Star</h2>
     <p>احجز موعدك دلوقتي</p>
-    <form>
+    <form id="bookingForm">
       <label>الاسم:</label>
-      <input type="text" placeholder="اكتب اسمك">
+      <input type="text" id="name" placeholder="اكتب اسمك" required>
       <label>رقم التليفون:</label>
-      <input type="tel" placeholder="01xxxxxxxxx">
-      <button type="submit">تأكيد الحجز</button>
+      <input type="tel" id="phone" placeholder="01xxxxxxxxx" required>
+      <button type="submit" id="submitBtn">تأكيد الحجز</button>
     </form>
+    <p id="message"></p>
     <a href="index.html">تسجيل دخول الأدمن</a>
   </div>
+
+  <script>
+    const SUPABASE_URL = "https://ynqnyuidxpjfcvcgexoi.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlucW55dWlkeHBqZmN2Y2dleG9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzNTUyMDAsImV4cCI6MjEwNTkzMTIwMH0.SRsgeU3_JSm-INcEYC-p5OzbwVoxZHWHFzaZnwa5UjY";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const form = document.getElementById('bookingForm');
+    const messageEl = document.getElementById('message');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "جاري الحجز...";
+      messageEl.textContent = "";
+
+      const { error } = await supabaseClient
+        .from('bookings')
+        .insert([{ name: name, phone: phone }]);
+
+      if (error) {
+        messageEl.style.color = "red";
+        messageEl.textContent = "حصل خطأ، حاول تاني";
+      } else {
+        messageEl.style.color = "green";
+        messageEl.textContent = "تم الحجز بنجاح! هنتواصل معاك قريبًا";
+        form.reset();
+      }
+
+      submitBtn.disabled = false;
+      submitBtn.textContent = "تأكيد الحجز";
+    });
+  </script>
 </body>
 </html>
