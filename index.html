@@ -19,8 +19,9 @@
     #message { margin-top: 15px; font-size: 14px; font-weight: bold; }
     .credit { margin-top: 20px; font-size: 12px; color: #888; }
 
-    .buttons { display: flex; gap: 12px; margin-top: 25px; }
+    .buttons { display: flex; gap: 22px; margin-top: 25px; justify-content: center; }
     a.role-btn { background: #1b2838; color: #cbd5e1; border: 1px solid #33465c; padding: 10px 16px; border-radius: 30px; text-decoration: none; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+    .icon-circle { width: 20px; height: 20px; border-radius: 50%; background: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
   </style>
 </head>
 <body>
@@ -39,8 +40,8 @@
       <p id="message"></p>
 
       <div class="buttons">
-        <a href="barber-login.html" class="role-btn">👤 لوحة الأدمن</a>
-        <a href="engineer-login.html" class="role-btn">👤 مهندس SIS</a>
+        <a href="engineer-login.html" class="role-btn"><span class="icon-circle">👤</span> مهندس SIS</a>
+        <a href="barber-login.html" class="role-btn"><span class="icon-circle">👤</span> لوحة الأدمن</a>
       </div>
 
       <p class="credit">Developed with by <b style="color:#0d1b2a;">Dr. Osama A. Badran</b></p>
