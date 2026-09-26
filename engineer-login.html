@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>دخول مهندس SIS</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: linear-gradient(160deg, #0d1b2a, #1b2838); display: flex; justify-content: center; align-items: flex-start; padding-top: 60px; min-height: 100vh; }
+    .card { background: white; width: 320px; padding: 30px 25px; border-radius: 14px; text-align: center; }
+    .logo { width: 90px; height: 90px; border-radius: 50%; margin-bottom: 15px; }
+    h2 { color: #0d1b2a; margin-bottom: 25px; }
+    label { display: block; text-align: right; margin-bottom: 5px; font-size: 14px; }
+    input { width: 100%; padding: 10px; margin-bottom: 18px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; text-align: right; }
+    button { width: 100%; padding: 12px; background: #0d1b2a; color: white; border: none; border-radius: 6px; font-size: 16px; }
+    button:disabled { background: #6b7a8f; }
+    #message { margin-top: 15px; font-size: 14px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <img src="logo.png" class="logo" alt="Super Star">
+    <h2>دخول مهندس SIS</h2>
+    <form id="loginForm">
+      <label>الإيميل:</label>
+      <input type="email" id="email" required>
+      <label>كلمة المرور:</label>
+      <input type="password" id="password" required>
+      <button type="submit" id="submitBtn">تسجيل الدخول</button>
+    </form>
+    <p id="message"></p>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://ynqnyuidxpjfcvcgexoi.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlucW55dWlkeHBqZmN2Y2dleG9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzNTUyMDAsImV4cCI6MjEwNTkzMTIwMH0.SRsgeU3_JSm-INcEYC-p5OzbwVoxZHWHFzaZnwa5UjY";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const form = document.getElementById('loginForm');
+    const messageEl = document.getElementById('message');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = "جاري الدخول...";
+      messageEl.textContent = "";
+
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        messageEl.style.color = "red";
+        messageEl.textContent = "بيانات غلط، حاول تاني";
+        submitBtn.disabled = false;
+        submitBtn.textContent = "تسجيل الدخول";
+        return;
+      }
+
+      const { data: staffData } = await supabaseClient
+        .from('staff')
+        .select('role')
+        .eq('email', email)
+        .single();
+
+      if (!staffData || staffData.role !== 'engineer') {
+        messageEl.style.color = "red";
+        messageEl.textContent = "الحساب ده مش حساب مهندس";
+        await supabaseClient.auth.signOut();
+        submitBtn.disabled = false;
+        submitBtn.textContent = "تسجيل الدخول";
+        return;
+      }
+
+      window.location.href = "engineer-dashboard.html";
+    });
+  </script>
+</body>
+</html>
