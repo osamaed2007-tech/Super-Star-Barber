@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة مهندس SIS</title>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #f3f4f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; text-align: center; padding: 20px; box-sizing: border-box; }
+    h2 { color: #0d1b2a; }
+    p { color: #666; }
+  </style>
+</head>
+<body>
+  <div>
+    <h2>لوحة مهندس SIS</h2>
+    <p>الصفحة دي هتتفعل قريبًا (إضافة حلاقين، تقارير، رسم بياني)</p>
+  </div>
+</body>
+</html>
