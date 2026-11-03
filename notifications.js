@@ -43,7 +43,38 @@
   document.body.appendChild(panel);
 
   const icons = { booking: '🆕', cancelled: '❌', done: '✂️', staff: '👤' };
+  const labels = { booking: 'حجز جديد:', cancelled: 'تم إلغاء حجز:', done: 'تمت حلاقة:', staff: 'تمت إضافة موظف:' };
   let unread = 0;
+
+  let audioCtx = null;
+  function unlockAudio() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audioCtx = new AC();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+  document.addEventListener('click', unlockAudio);
+  document.addEventListener('touchstart', unlockAudio);
+
+  function playDing() {
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime;
+    [880, 1320].forEach((freq, i) => {
+      const t = now + i * 0.18;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.3, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(t);
+      osc.stop(t + 0.5);
+    });
+  }
 
   function setBadge(n) {
     unread = n;
@@ -65,7 +96,7 @@
     const item = document.createElement('div');
     item.className = 'nb-item' + (n.is_read ? '' : ' nb-unread');
     const msg = document.createElement('div');
-    msg.textContent = (icons[n.type] || '🔔') + ' ' + n.message;
+    msg.textContent = (icons[n.type] || '🔔') + ' ' + (labels[n.type] || '') + ' ' + n.message;
     const time = document.createElement('small');
     time.textContent = new Date(n.created_at).toLocaleString('ar-EG', {
       day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
@@ -124,6 +155,7 @@
         { event: 'INSERT', schema: 'public', table: 'notifications' },
         (payload) => {
           addItem(payload.new, true);
+          playDing();
           if (panel.style.display === 'none') {
             setBadge(unread + 1);
             if (navigator.vibrate) navigator.vibrate(200);
