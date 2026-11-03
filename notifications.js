@@ -46,6 +46,12 @@
   const labels = { booking: 'حجز جديد:', cancelled: 'تم إلغاء حجز:', done: 'تمت حلاقة:', staff: 'تمت إضافة موظف:' };
   let unread = 0;
 
+  function textFor(n) {
+    if (n.type === 'maintenance') return n.message === 'on' ? '🛠️ الموقع دخل وضع التحديث' : '✅ انتهى التحديث والموقع رجع يشتغل';
+    if (n.type === 'announce') return '📢 ' + n.message;
+    return (icons[n.type] || '🔔') + ' ' + (labels[n.type] || '') + ' ' + n.message;
+  }
+
   let audioCtx = null;
   function unlockAudio() {
     if (!audioCtx) {
@@ -96,7 +102,7 @@
     const item = document.createElement('div');
     item.className = 'nb-item' + (n.is_read ? '' : ' nb-unread');
     const msg = document.createElement('div');
-    msg.textContent = (icons[n.type] || '🔔') + ' ' + (labels[n.type] || '') + ' ' + n.message;
+    msg.textContent = textFor(n);
     const time = document.createElement('small');
     time.textContent = new Date(n.created_at).toLocaleString('ar-EG', {
       day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
