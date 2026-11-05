@@ -53,11 +53,19 @@
   <script>
     const SUPABASE_URL = "https://ynqnyuidxpjfcvcgexoi.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlucW55dWlkeHBqZmN2Y2dleG9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzNTUyMDAsImV4cCI6MjEwNTkzMTIwMH0.SRsgeU3_JSm-INcEYC-p5OzbwVoxZHWHFzaZnwa5UjY";
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const form = document.getElementById('bookingForm');
     const messageEl = document.getElementById('message');
     const submitBtn = document.getElementById('submitBtn');
+
+    const keyMissing = SUPABASE_ANON_KEY.indexOf('YOUR_') === 0;
+    if (keyMissing) {
+      messageEl.style.color = "red";
+      messageEl.textContent = "المفتاح لسه ما اتحطش في الكود";
+      submitBtn.disabled = true;
+    }
+
+    const supabaseClient = keyMissing ? null : supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     function generateCode() {
       const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -70,6 +78,8 @@
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (!supabaseClient) return;
+
       const name = document.getElementById('name').value.trim();
       const phone = document.getElementById('phone').value.trim();
       const now = new Date();
@@ -79,7 +89,7 @@
       submitBtn.textContent = "جاري الحجز...";
       messageEl.textContent = "";
 
-            const { data: ahead } = await supabaseClient.rpc('today_booking_count');
+      const { data: ahead } = await supabaseClient.rpc('today_booking_count');
       const queuePosition = (ahead || 0) + 1;
 
       const { error } = await supabaseClient
