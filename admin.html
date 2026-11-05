@@ -19,18 +19,29 @@
     .tile .ic { font-size: 30px; display: block; margin-bottom: 8px; }
     .tile.soon { opacity: 0.55; }
 
-    .stats { display: flex; gap: 10px; margin-bottom: 16px; }
-    .stat { flex: 1; background: white; border-radius: 10px; padding: 12px 6px; text-align: center; box-shadow: 0 1px 5px rgba(0,0,0,0.08); }
-    .stat span { font-size: 12px; color: #666; display: block; margin-bottom: 4px; }
-    .stat b { font-size: 22px; color: #0d1b2a; }
+    .stats { display: flex; gap: 8px; margin-bottom: 16px; }
+    .stat { flex: 1; background: white; border-radius: 10px; padding: 10px 4px; text-align: center; box-shadow: 0 1px 5px rgba(0,0,0,0.08); }
+    .stat span { font-size: 11px; color: #666; display: block; margin-bottom: 4px; }
+    .stat b { font-size: 18px; color: #0d1b2a; }
 
     .section { background: white; border-radius: 10px; padding: 15px; margin-bottom: 16px; box-shadow: 0 1px 5px rgba(0,0,0,0.08); }
     .section h3 { margin: 0; color: #0d1b2a; font-size: 15px; }
+    .sec-head { display: flex; justify-content: space-between; align-items: center; }
+    .sec-head span { font-size: 13px; font-weight: bold; color: #0d1b2a; }
     .chart-bars { display: flex; align-items: flex-end; gap: 6px; height: 150px; margin-top: 15px; }
     .bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
     .bar { width: 100%; background: #0d1b2a; border-radius: 4px 4px 0 0; }
     .bar-label { font-size: 10px; color: #666; margin-top: 4px; }
     .bar-count { font-size: 11px; color: #0d1b2a; font-weight: bold; }
+
+    .legend { display: flex; gap: 14px; margin-top: 8px; font-size: 12px; color: #555; }
+    .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-left: 5px; vertical-align: middle; }
+    .fchart { display: flex; align-items: flex-end; gap: 6px; height: 165px; margin-top: 12px; }
+    .fday { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+    .fpair { display: flex; align-items: flex-end; gap: 2px; width: 100%; justify-content: center; }
+    .fcol { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; min-width: 0; }
+    .fval { font-size: 9px; color: #333; height: 12px; line-height: 12px; }
+    .fbar { width: 100%; border-radius: 3px 3px 0 0; }
 
     button.back { background: none; border: none; color: #0d1b2a; font-size: 15px; padding: 4px 0 12px; cursor: pointer; font-family: inherit; }
     .daynav { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
@@ -59,7 +70,28 @@
     .bk-actions button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-size: 14px; font-family: inherit; }
     .btn-done { background: #16a34a; color: white; }
     .btn-cancel { background: #f3f4f6; color: #dc2626; }
-    .empty { text-align: center; color: #888; padding: 30px 0; }
+    .empty { text-align: center; color: #888; padding: 22px 0; font-size: 14px; }
+
+    .fsum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+    .fcard { background: white; border-radius: 10px; padding: 10px 4px; text-align: center; box-shadow: 0 1px 5px rgba(0,0,0,0.08); }
+    .fcard span { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+    .fcard b { font-size: 16px; color: #0d1b2a; }
+    .fcard b.neg { color: #dc2626; }
+    .fcard b.pos { color: #16a34a; }
+    .fl-list { margin-top: 8px; }
+    .fl-row { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid #f0f0f0; }
+    .fl-row:last-child { border-bottom: none; }
+    .fl-main { flex: 1; min-width: 0; }
+    .fl-main b { display: block; font-size: 14px; }
+    .fl-main small { color: #777; font-size: 12px; }
+    .fl-amt { font-weight: bold; font-size: 14px; color: #16a34a; white-space: nowrap; }
+    .fl-amt.neg { color: #dc2626; }
+    .fl-del { background: #f3f4f6; border: none; border-radius: 6px; padding: 6px 9px; font-size: 14px; }
+    .addx { display: flex; gap: 8px; margin-top: 12px; }
+    .addx input { padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; text-align: right; min-width: 0; }
+    .addx input.t { flex: 2; }
+    .addx input.a { flex: 1; }
+    .addx button { background: #0d1b2a; color: white; border: none; border-radius: 6px; padding: 10px 14px; font-family: inherit; }
 
     .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 5000; padding: 20px; }
     .modal-box { background: white; border-radius: 14px; padding: 20px; width: 100%; max-width: 340px; }
@@ -89,35 +121,74 @@
   <div id="homeView" style="display:none;">
     <div class="tiles">
       <button class="tile" id="tileBookings"><span class="ic">📅</span>الحجوزات</button>
-      <button class="tile soon" data-soon="1"><span class="ic">💰</span>المالية</button>
+      <button class="tile" id="tileFinance"><span class="ic">💰</span>المالية</button>
       <button class="tile soon" data-soon="1"><span class="ic">📊</span>التقرير الشهري</button>
       <button class="tile soon" data-soon="1"><span class="ic">💬</span>التواصل مع مهندس SIS</button>
     </div>
 
     <div class="stats">
-      <div class="stat"><span>حجوزات النهاردة</span><b id="stTotal">0</b></div>
-      <div class="stat"><span>في الانتظار</span><b id="stWaiting">0</b></div>
+      <div class="stat"><span>حجوزات اليوم</span><b id="stTotal">0</b></div>
+      <div class="stat"><span>انتظار</span><b id="stWaiting">0</b></div>
       <div class="stat"><span>تمت</span><b id="stDone">0</b></div>
+      <div class="stat"><span>إيراد اليوم</span><b id="stRevenue">0</b></div>
     </div>
 
     <div class="section">
       <h3>الحجوزات آخر 7 أيام</h3>
       <div class="chart-bars" id="chartBars"></div>
     </div>
+
+    <div class="section">
+      <h3>الإيرادات والمصاريف آخر 7 أيام</h3>
+      <div class="legend">
+        <span><i style="background:#0d1b2a"></i>إيرادات</span>
+        <span><i style="background:#dc2626"></i>مصاريف</span>
+      </div>
+      <div class="fchart" id="finChart"></div>
+    </div>
   </div>
 
   <div id="bookingsView" style="display:none;">
     <button class="back" id="backBtn">→ رجوع</button>
     <div class="daynav">
-      <button id="prevDay">→ السابق</button>
+      <button id="bkPrev">→ السابق</button>
       <div class="daymid">
-        <b id="dayLabel"></b>
-        <input type="date" id="dayPick">
+        <b id="bkLabel"></b>
+        <input type="date" id="bkPick">
       </div>
-      <button id="nextDay">التالي ←</button>
+      <button id="bkNext">التالي ←</button>
     </div>
     <div class="summary" id="daySummary"></div>
     <div id="bookingsList"></div>
+  </div>
+
+  <div id="financeView" style="display:none;">
+    <button class="back" id="backBtn2">→ رجوع</button>
+    <div class="daynav">
+      <button id="finPrev">→ السابق</button>
+      <div class="daymid">
+        <b id="finLabel"></b>
+        <input type="date" id="finPick">
+      </div>
+      <button id="finNext">التالي ←</button>
+    </div>
+
+    <div class="fsum" id="finSummary"></div>
+
+    <div class="section">
+      <div class="sec-head"><h3>الحلاقات</h3><span id="hairTotal"></span></div>
+      <div class="fl-list" id="hairList"></div>
+    </div>
+
+    <div class="section">
+      <div class="sec-head"><h3>المصاريف</h3><span id="expTotal"></span></div>
+      <div class="fl-list" id="expList"></div>
+      <div class="addx">
+        <input class="t" type="text" id="expTitle" maxlength="60" placeholder="المصروف (مثال: كهرباء)">
+        <input class="a" type="number" id="expAmount" inputmode="decimal" min="0" placeholder="المبلغ">
+        <button id="expAdd">إضافة</button>
+      </div>
+    </div>
   </div>
 
   <div class="modal" id="doneModal">
@@ -151,7 +222,8 @@
     const STATUS_TXT = { waiting: 'في الانتظار', done: 'تمت', cancelled: 'ملغي' };
 
     let myName = '';
-    let currentDay = startOfDay(new Date());
+    let bookDay = startOfDay(new Date());
+    let finDay = startOfDay(new Date());
     let doneId = null;
     let activeView = 'home';
 
@@ -168,6 +240,9 @@
     function pad(n) { return String(n).padStart(2, '0'); }
     function toInput(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
     function fmtTime(iso) { return new Date(iso).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }); }
+    function num(v) { const n = Number(v); return isNaN(n) ? 0 : n; }
+    function money(n) { return (Math.round(n * 100) / 100) + ' ج'; }
+    function short(n) { n = Math.round(n); return n >= 10000 ? Math.round(n / 1000) + 'k' : String(n); }
 
     function dayLabel(d) {
       const diff = Math.round((d - startOfDay(new Date())) / 86400000);
@@ -187,32 +262,72 @@
       activeView = name;
       $('homeView').style.display = name === 'home' ? 'block' : 'none';
       $('bookingsView').style.display = name === 'bookings' ? 'block' : 'none';
+      $('financeView').style.display = name === 'finance' ? 'block' : 'none';
       window.scrollTo(0, 0);
     }
 
+    function renderNav(p, d) {
+      $(p + 'Label').textContent = dayLabel(d);
+      $(p + 'Pick').value = toInput(d);
+      $(p + 'Next').disabled = d >= startOfDay(new Date());
+    }
+
+    function bindNav(p, get, set, load) {
+      $(p + 'Prev').onclick = () => { set(addDays(get(), -1)); load(); };
+      $(p + 'Next').onclick = () => {
+        if (get() < startOfDay(new Date())) { set(addDays(get(), 1)); load(); }
+      };
+      $(p + 'Pick').onchange = () => {
+        const v = $(p + 'Pick').value;
+        if (!v) return;
+        const parts = v.split('-');
+        let d = new Date(+parts[0], +parts[1] - 1, +parts[2]);
+        const today = startOfDay(new Date());
+        if (d > today) d = today;
+        set(d);
+        load();
+      };
+    }
+
+    /* ---------- الرئيسية ---------- */
     async function loadHome() {
       const todayStart = startOfDay(new Date());
       const weekStart = addDays(todayStart, -6);
-      const { data } = await supabaseClient
-        .from('bookings').select('created_at,status')
-        .gte('created_at', weekStart.toISOString());
-      const rows = data || [];
+      const iso = weekStart.toISOString();
+
+      const [bk, dn, ex] = await Promise.all([
+        supabaseClient.from('bookings').select('created_at,status').gte('created_at', iso),
+        supabaseClient.from('bookings').select('amount,done_at').eq('status', 'done').gte('done_at', iso),
+        supabaseClient.from('expenses').select('amount,spent_on').gte('spent_on', toInput(weekStart))
+      ]);
+      const rows = bk.data || [];
+      const done = dn.data || [];
+      const exps = ex.data || [];
 
       const days = [];
       for (let i = 6; i >= 0; i--) {
         const s = addDays(todayStart, -i);
         const e = addDays(s, 1);
-        const count = rows.filter(r => {
-          const t = new Date(r.created_at);
-          return t >= s && t < e && r.status !== 'cancelled';
-        }).length;
-        days.push({ label: s.toLocaleDateString('ar-EG', { weekday: 'short' }), count });
+        const key = toInput(s);
+        days.push({
+          label: s.toLocaleDateString('ar-EG', { weekday: 'short' }),
+          count: rows.filter(r => {
+            const t = new Date(r.created_at);
+            return t >= s && t < e && r.status !== 'cancelled';
+          }).length,
+          revenue: done.filter(r => {
+            const t = new Date(r.done_at);
+            return t >= s && t < e;
+          }).reduce((a, r) => a + num(r.amount), 0),
+          expense: exps.filter(r => r.spent_on === key).reduce((a, r) => a + num(r.amount), 0)
+        });
       }
 
       const todayRows = rows.filter(r => new Date(r.created_at) >= todayStart);
       $('stTotal').textContent = todayRows.filter(r => r.status !== 'cancelled').length;
       $('stWaiting').textContent = todayRows.filter(r => r.status === 'waiting').length;
       $('stDone').textContent = todayRows.filter(r => r.status === 'done').length;
+      $('stRevenue').textContent = short(days[6].revenue);
 
       const max = Math.max(...days.map(d => d.count), 1);
       const chart = $('chartBars');
@@ -226,14 +341,29 @@
         wrap.appendChild(el('span', 'bar-label', d.label));
         chart.appendChild(wrap);
       });
+
+      const fmax = Math.max(...days.map(d => Math.max(d.revenue, d.expense)), 1);
+      const fc = $('finChart');
+      fc.innerHTML = '';
+      days.forEach(d => {
+        const day = el('div', 'fday');
+        const pair = el('div', 'fpair');
+        [['revenue', '#0d1b2a'], ['expense', '#dc2626']].forEach(([k, color]) => {
+          const col = el('div', 'fcol');
+          col.appendChild(el('span', 'fval', d[k] > 0 ? short(d[k]) : ''));
+          const bar = el('div', 'fbar');
+          bar.style.background = color;
+          bar.style.height = (d[k] > 0 ? Math.max((d[k] / fmax) * 100, 3) : 0) + 'px';
+          col.appendChild(bar);
+          pair.appendChild(col);
+        });
+        day.appendChild(pair);
+        day.appendChild(el('span', 'bar-label', d.label));
+        fc.appendChild(day);
+      });
     }
 
-    function updateNav() {
-      $('dayLabel').textContent = dayLabel(currentDay);
-      $('dayPick').value = toInput(currentDay);
-      $('nextDay').disabled = currentDay >= startOfDay(new Date());
-    }
-
+    /* ---------- الحجوزات ---------- */
     function buildCard(b, n) {
       const card = el('div', 'bk ' + b.status);
 
@@ -255,9 +385,8 @@
       card.appendChild(info);
 
       if (b.status === 'done') {
-        const amount = b.amount != null ? b.amount : 0;
         card.appendChild(el('div', 'bk-done',
-          '✂️ ' + (b.barber_name || '-') + ' • ' + (b.service || '') + ' • ' + amount + ' ج'));
+          '✂️ ' + (b.barber_name || '-') + ' • ' + (b.service || '') + ' • ' + money(num(b.amount))));
       }
 
       if (b.status === 'waiting') {
@@ -274,13 +403,11 @@
     }
 
     async function loadDay() {
-      updateNav();
-      const start = currentDay;
-      const end = addDays(currentDay, 1);
+      renderNav('bk', bookDay);
       const { data, error } = await supabaseClient
         .from('bookings').select('*')
-        .gte('created_at', start.toISOString())
-        .lt('created_at', end.toISOString())
+        .gte('created_at', bookDay.toISOString())
+        .lt('created_at', addDays(bookDay, 1).toISOString())
         .order('created_at', { ascending: true });
 
       const list = $('bookingsList');
@@ -296,151 +423,4 @@
       const rows = data || [];
       summary.appendChild(el('span', 'chip', 'الكل: ' + rows.length));
       summary.appendChild(el('span', 'chip', 'انتظار: ' + rows.filter(r => r.status === 'waiting').length));
-      summary.appendChild(el('span', 'chip', 'تمت: ' + rows.filter(r => r.status === 'done').length));
-      summary.appendChild(el('span', 'chip', 'ملغي: ' + rows.filter(r => r.status === 'cancelled').length));
-
-      if (rows.length === 0) {
-        list.appendChild(el('div', 'empty', 'مفيش حجوزات في اليوم ده'));
-        return;
-      }
-      rows.forEach((b, i) => list.appendChild(buildCard(b, i + 1)));
-    }
-
-    async function refresh() {
-      await loadHome();
-      if (activeView === 'bookings') await loadDay();
-    }
-
-    function openDone(b) {
-      doneId = b.id;
-      $('doneFor').textContent = b.name;
-      $('serviceSel').value = 'haircut';
-      $('amountInput').value = SERVICES.haircut.price;
-      $('doneModal').style.display = 'flex';
-    }
-    function closeModal() {
-      $('doneModal').style.display = 'none';
-      doneId = null;
-    }
-
-    async function confirmDone() {
-      const key = $('serviceSel').value;
-      const amount = parseFloat($('amountInput').value);
-      if (!(amount > 0)) { alert('اكتب المبلغ'); return; }
-
-      const btn = $('doneConfirm');
-      btn.disabled = true;
-      const { data, error } = await supabaseClient
-        .from('bookings')
-        .update({
-          status: 'done',
-          amount: amount,
-          service: SERVICES[key].label,
-          barber_name: myName,
-          done_at: new Date().toISOString()
-        })
-        .eq('id', doneId)
-        .eq('status', 'waiting')
-        .select();
-      btn.disabled = false;
-      closeModal();
-
-      if (error) { alert('حصل خطأ، جرب تاني'); return; }
-      if (!data || data.length === 0) alert('الحجز ده اتغير قبل كده');
-      else toast('تم تسجيل الحلاقة ✂️');
-      refresh();
-    }
-
-    async function cancelBooking(b) {
-      if (!confirm('تلغي حجز ' + b.name + '؟')) return;
-      const { data, error } = await supabaseClient
-        .from('bookings')
-        .update({ status: 'cancelled' })
-        .eq('id', b.id)
-        .eq('status', 'waiting')
-        .select();
-      if (error) { alert('حصل خطأ، جرب تاني'); return; }
-      if (!data || data.length === 0) alert('الحجز ده اتغير قبل كده');
-      else toast('تم إلغاء الحجز');
-      refresh();
-    }
-
-    function setupUI() {
-      const sel = $('serviceSel');
-      Object.keys(SERVICES).forEach(k => {
-        const o = el('option', '', SERVICES[k].price > 0 ? SERVICES[k].label + ' - ' + SERVICES[k].price + ' ج' : SERVICES[k].label);
-        o.value = k;
-        sel.appendChild(o);
-      });
-      sel.addEventListener('change', () => {
-        const p = SERVICES[sel.value].price;
-        $('amountInput').value = p > 0 ? p : '';
-      });
-
-      $('tileBookings').onclick = () => { showView('bookings'); loadDay(); };
-      document.querySelectorAll('[data-soon]').forEach(t => {
-        t.onclick = () => toast('هتتفعل في المرحلة الجاية');
-      });
-      $('backBtn').onclick = () => { showView('home'); loadHome(); };
-
-      $('prevDay').onclick = () => { currentDay = addDays(currentDay, -1); loadDay(); };
-      $('nextDay').onclick = () => {
-        if (currentDay < startOfDay(new Date())) { currentDay = addDays(currentDay, 1); loadDay(); }
-      };
-      $('dayPick').onchange = () => {
-        const v = $('dayPick').value;
-        if (!v) return;
-        const p = v.split('-');
-        let d = new Date(+p[0], +p[1] - 1, +p[2]);
-        const today = startOfDay(new Date());
-        if (d > today) d = today;
-        currentDay = d;
-        loadDay();
-      };
-
-      $('doneConfirm').onclick = confirmDone;
-      $('doneClose').onclick = closeModal;
-      $('doneModal').addEventListener('click', (e) => { if (e.target === $('doneModal')) closeModal(); });
-
-      $('logoutBtn').addEventListener('click', async () => {
-        await supabaseClient.auth.signOut();
-        window.location.href = 'barber-login.html';
-      });
-    }
-
-    async function init() {
-      setupUI();
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      if (!session) { window.location.href = 'barber-login.html'; return; }
-
-      const { data: staff } = await supabaseClient
-        .from('staff').select('name,role').eq('email', session.user.email).single();
-      if (!staff) {
-        await supabaseClient.auth.signOut();
-        window.location.href = 'barber-login.html';
-        return;
-      }
-
-      myName = staff.name;
-      $('hello').textContent = 'أهلاً ' + myName;
-      await loadHome();
-      $('loading').style.display = 'none';
-      showView('home');
-
-      let timer = null;
-      supabaseClient
-        .channel('bookings-live')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, () => {
-          clearTimeout(timer);
-          timer = setTimeout(refresh, 400);
-        })
-        .subscribe();
-    }
-
-    init();
-  </script>
-
-  <script src="notifications.js"></script>
-  <script src="maintenance.js"></script>
-</body>
-</html>
+      summary.appendChild(el('span', 'chip', 'تمت: ' + rows.filter(r => r.status === 'done').length
