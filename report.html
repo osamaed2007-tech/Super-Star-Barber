@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>التقرير الشهري - Super Star</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, sans-serif; background: #f3f4f8; padding: 16px; color: #222; }
+    .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .top h2 { margin: 0; color: #0d1b2a; font-size: 19px; }
+    .top a { color: #0d1b2a; text-decoration: none; font-size: 15px; }
+    #diag { display: none; background: #fee2e2; color: #991b1b; border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 13px; line-height: 1.7; word-break: break-word; }
+    #loading { text-align: center; color: #666; margin-top: 40px; }
+
+    .daynav { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .daynav button { background: #0d1b2a; color: white; border: none; border-radius: 8px; padding: 10px 12px; font-size: 13px; font-family: inherit; }
+    .daynav button:disabled { opacity: 0.35; }
+    .daymid { flex: 1; text-align: center; }
+    .daymid b { display: block; color: #0d1b2a; margin-bottom: 4px; font-size: 16px; }
+    .daymid input { padding: 5px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; max-width: 100%; }
+
+    .fsum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+    .fcard { background: white; border-radius: 10px; padding: 10px 4px; text-align: center; box-shadow: 0 1px 5px rgba(0,0,0,0.08); }
+    .fcard span { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+    .fcard b { font-size: 16px; color: #0d1b2a; }
+    .fcard b.neg { color: #dc2626; }
+    .fcard b.pos { color: #16a34a; }
+
+    .section { background: white; border-radius: 10px; padding: 15px; margin-bottom: 16px; box-shadow: 0 1px 5px rgba(0,0,0,0.08); }
+    .section h3 { margin: 0; color: #0d1b2a; font-size: 15px; }
+    .sec-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .sec-head span { font-size: 13px; font-weight: bold; color: #0d1b2a; }
+    .empty { text-align: center; color: #888; padding: 18px 0; font-size: 14px; }
+
+    .rrow { padding: 9px 0; border-bottom: 1px solid #f0f0f0; }
+    .rrow:last-child { border-bottom: none; }
+    .rline { display: flex; justify-content: space-between; align-items: center; font-size: 14px; margin-bottom: 6px; }
+    .rline small { color: #777; font-size: 12px; }
+    .rline .amt { font-weight: bold; color: #0d1b2a; white-space: nowrap; }
+    .rtrack { height: 6px; background: #eef0f4; border-radius: 4px; overflow: hidden; }
+    .rfill { height: 100%; background: #0d1b2a; border-radius: 4px; }
+    .rfill.red { background: #dc2626; }
+
+    .mchart { display: flex; align-items: flex-end; gap: 2px; height: 150px; margin-top: 12px; }
+    .mday { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
+    .mbar { width: 100%; background: #0d1b2a; border-radius: 2px 2px 0 0; }
+    .mlabel { font-size: 9px; color: #666; margin-top: 4px; height: 11px; }
+
+    .btns { display: flex; gap: 8px; margin-bottom: 16px; }
+    .btns button { flex: 1; background: #0d1b2a; color: white; border: none; border-radius: 8px; padding: 12px; font-size: 14px; font-family: inherit; }
+
+    @media print {
+      body { background: white; padding: 0; }
+      .top a, .daynav button, .daymid input, .btns { display: none !important; }
+      .section, .fcard { box-shadow: none; border: 1px solid #ddd; }
+    }
+  </style>
+  <script>
+    function showError(msg) {
+      var d = document.getElementById('diag');
+      if (!d) return;
+      d.style.display = 'block';
+      d.textContent = msg;
+    }
+    window.addEventListener('error', function (e) { showError('خطأ في الصفحة: ' + e.message); });
+    window.addEventListener('unhandledrejection', function (e) {
+      showError('خطأ: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="top">
+    <a href="admin.html">→ رجوع للوحة</a>
+    <h2>📊 التقرير الشهري</h2>
+  </div>
+
+  <div id="diag"></div>
+  <div id="loading">جاري التحميل...</div>
+
+  <div id="content" style="display:none;">
+    <div class="daynav">
+      <button id="prevMonth">→ السابق</button>
+      <div class="daymid">
+        <b id="monthLabel"></b>
+        <input type="month" id="monthPick">
+      </div>
+      <button id="nextMonth">التالي ←</button>
+    </div>
+
+    <div class="fsum" id="finSummary"></div>
+    <div class="fsum" id="bkSummary"></div>
+
+    <div class="section">
+      <h3>الإيرادات اليومية</h3>
+      <div class="mchart" id="monthChart"></div>
+    </div>
+
+    <div class="section">
+      <div class="sec-head"><h3>أداء الحلاقين</h3><span id="barberTotal"></span></div>
+      <div id="barberList"></div>
+    </div>
+
+    <div class="section">
+      <div class="sec-head"><h3>الخدمات</h3><span id="serviceTotal"></span></div>
+      <div id="serviceList"></div>
+    </div>
+
+    <div class="section">
+      <div class="sec-head"><h3>المصاريف</h3><span id="expTotal"></span></div>
+      <div id="expList"></div>
+    </div>
+
+    <div class="btns">
+      <button id="printBtn">🖨️ طباعة / حفظ PDF</button>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://ynqnyuidxpjfcvcgexoi.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlucW55dWlkeHBqZmN2Y2dleG9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzNTUyMDAsImV4cCI6MjEwNTkzMTIwMH0.SRsgeU3_JSm-INcEYC-p5OzbwVoxZHWHFzaZnwa5UjY";
+
+    const $ = (id) => document.getElementById(id);
+
+    function el(tag, cls, text) {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text !== undefined) e.textContent = text;
+      return e;
+    }
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function num(v) { const n = Number(v); return isNaN(n) ? 0 : n; }
+    function money(n) { return (Math.round(n * 100) / 100) + ' ج'; }
+    function monthKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1); }
+    function firstOfMonth(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
+    function addMonths(d, n) { return new Date(d.getFullYear(), d.getMonth() + n, 1); }
+    function toDateStr(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+
+    function explain(what, error) {
+      const m = (error && error.message) ? error.message : String(error);
+      showError(what + ': ' + m);
+    }
+
+    let db = null;
+    let month = firstOfMonth(new Date());
+
+    // يجيب كل الصفوف (Supabase بيرجع 1000 صف بس في المرة)
+    async function fetchAll(build) {
+      const size = 1000;
+      let out = [];
+      for (let from = 0; ; from += size) {
+        const res = await build().range(from, from + size - 1);
+        if (res.error) return { error: res.error };
+        out = out.concat(res.data || []);
+        if (!res.data || res.data.length < size) break;
+      }
+      return { data: out };
+    }
+
+    function groupBy(rows, keyFn) {
+      const map = {};
+      rows.forEach((r) => {
+        const k = keyFn(r) || '-';
+        if (!map[k]) map[k] = { name: k, count: 0, total: 0 };
+        map[k].count++;
+        map[k].total += num(r.amount);
+      });
+      return Object.keys(map).map((k) => map[k]).sort((a, b) => b.total - a.total);
+    }
+
+    function renderBars(container, items, subFn, red) {
+      container.innerHTML = '';
+      if (items.length === 0) { container.appendChild(el('div', 'empty', 'مفيش بيانات في الشهر ده')); return; }
+      const max = Math.max.apply(null, items.map((i) => i.total).concat([1]));
+      items.forEach((it) => {
+        const row = el('div', 'rrow');
+        const line = el('div', 'rline');
+        const left = el('span');
+        left.appendChild(el('b', '', it.name));
+        left.appendChild(document.createTextNode(' '));
+        left.appendChild(el('small', '', subFn(it)));
+        line.appendChild(left);
+        line.appendChild(el('span', 'amt', money(it.total)));
+        row.appendChild(line);
+        const track = el('div', 'rtrack');
+        const fill = el('div', 'rfill' + (red ? ' red' : ''));
+        fill.style.width = Math.max((it.total / max) * 100, 2) + '%';
+        track.appendChild(fill);
+        row.appendChild(track);
+        container.appendChild(row);
+      });
+    }
+
+    async function loadMonth() {
+      $('monthLabel').textContent = month.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
+      $('monthPick').value = monthKey(month);
+      $('nextMonth').disabled = month >= firstOfMonth(new Date());
+
+      const start = month;
+      const end = addMonths(month, 1);
+      const daysInMonth = Math.round((end - start) / 86400000);
+
+      const [dn, all, ex] = await Promise.all([
+        fetchAll(() => db.from('bookings').select('amount,service,barber_name,done_at')
+          .eq('status', 'done').gte('done_at', start.toISOString()).lt('done_at', end.toISOString())
+          .order('done_at', { ascending: true })),
+        fetchAll(() => db.from('bookings').select('status,created_at')
+          .gte('created_at', start.toISOString()).lt('created_at', end.toISOString())
+          .order('created_at', { ascending: true })),
+        fetchAll(() => db.from('expenses').select('title,amount,spent_on')
+          .gte('spent_on', toDateStr(start)).lt('spent_on', toDateStr(end))
+          .order('spent_on', { ascending: true }))
+      ]);
+
+      if (dn.error) { explain('تحميل الحلاقات', dn.error); return; }
+      if (all.error) { explain('تحميل الحجوزات', all.error); return; }
+      if (ex.error) { explain('تحميل المصاريف', ex.error); return; }
+
+      const done = dn.data;
+      const bookings = all.data;
+      const exps = ex.data;
+
+      const rev = done.reduce((a, r) => a + num(r.amount), 0);
+      const exp = exps.reduce((a, r) => a + num(r.amount), 0);
+      const net = rev - exp;
+
+      const fin = $('finSummary');
+      fin.innerHTML = '';
+      [['إيرادات', rev, ''], ['مصاريف', exp, 'neg'], ['الصافي', net, net >= 0 ? 'pos' : 'neg']].forEach((row) => {
+        const card = el('div', 'fcard');
+        card.appendChild(el('span', '', row[0]));
+        card.appendChild(el('b', row[2], money(row[1])));
+        fin.appendChild(card);
+      });
+
+      const cancelled = bookings.filter((r) => r.status === 'cancelled').length;
+      const bk = $('bkSummary');
+      bk.innerHTML = '';
+      [['كل الحجوزات', bookings.length], ['تمت', done.length], ['ملغية', cancelled]].forEach((row) => {
+        const card = el('div', 'fcard');
+        card.appendChild(el('span', '', row[0]));
+        card.appendChild(el('b', '', String(row[1])));
+        bk.appendChild(card);
+      });
+
+      const perDay = new Array(daysInMonth).fill(0);
+      done.forEach((r) => {
+        const d = new Date(r.done_at);
+        if (d >= start && d < end) perDay[d.getDate() - 1] += num(r.amount);
+      });
+      const dmax = Math.max.apply(null, perDay.concat([1]));
+      const chart = $('monthChart');
+      chart.innerHTML = '';
+      perDay.forEach((v, i) => {
+        const col = el('div', 'mday');
+        const bar = el('div', 'mbar');
+        bar.style.height = (v > 0 ? Math.max((v / dmax) * 115, 3) : 0) + 'px';
+        col.appendChild(bar);
+        const n = i + 1;
+        col.appendChild(el('span', 'mlabel', (n === 1 || n % 5 === 0) ? String(n) : ''));
+        chart.appendChild(col);
+      });
+
+      $('barberTotal').textContent = done.length + ' حلاقة';
+      renderBars($('barberList'), groupBy(done, (r) => r.barber_name), (it) => it.count + ' حلاقة');
+
+      const services = groupBy(done, (r) => r.service);
+      $('serviceTotal').textContent = services.length + ' نوع';
+      renderBars($('serviceList'), services, (it) => it.count + ' مرة');
+
+      const expItems = groupBy(exps.map((x) => ({ title: (x.title || '-').trim(), amount: x.amount })), (r) => r.title);
+      $('expTotal').textContent = money(exp);
+      renderBars($('expList'), expItems, (it) => it.count + ' مرة', true);
+    }
+
+    function bindUI() {
+      $('prevMonth').onclick = () => { month = addMonths(month, -1); loadMonth(); };
+      $('nextMonth').onclick = () => {
+        if (month < firstOfMonth(new Date())) { month = addMonths(month, 1); loadMonth(); }
+      };
+      $('monthPick').onchange = () => {
+        const v = $('monthPick').value;
+        if (!v) return;
+        const p = v.split('-');
+        let d = new Date(+p[0], +p[1] - 1, 1);
+        const cur = firstOfMonth(new Date());
+        if (d > cur) d = cur;
+        month = d;
+        loadMonth();
+      };
+      $('printBtn').onclick = () => window.print();
+    }
+
+    async function init() {
+      try {
+        db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const sess = await db.auth.getSession();
+        const session = sess.data && sess.data.session;
+        if (!session) { window.location.href = 'barber-login.html'; return; }
+
+        const st = await db.from('staff').select('name,role')
+          .eq('email', session.user.email.toLowerCase()).maybeSingle();
+        if (st.error) {
+          $('loading').style.display = 'none';
+          explain('قراءة بيانات الموظف', st.error);
+          return;
+        }
+        if (!st.data) {
+          $('loading').style.display = 'none';
+          showError('الإيميل ' + session.user.email + ' مش مسجل في جدول staff');
+          return;
+        }
+
+        bindUI();
+        await loadMonth();
+        $('loading').style.display = 'none';
+        $('content').style.display = 'block';
+      } catch (err) {
+        $('loading').style.display = 'none';
+        showError('خطأ: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
