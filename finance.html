@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>المالية - Super Star</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, sans-serif; background: #f3f4f8; padding: 16px; color: #222; }
+    .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .top h2 { margin: 0; color: #0d1b2a; font-size: 19px; }
+    .top a { color: #0d1b2a; text-decoration: none; font-size: 15px; }
+    #diag { display: none; background: #fee2e2; color: #991b1b; border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 13px; line-height: 1.7; word-break: break-word; }
+    #loading { text-align: center; color: #666; margin-top: 40px; }
+
+    .daynav { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .daynav button { background: #0d1b2a; color: white; border: none; border-radius: 8px; padding: 10px 12px; font-size: 13px; font-family: inherit; }
+    .daynav button:disabled { opacity: 0.35; }
+    .daymid { flex: 1; text-align: center; }
+    .daymid b { display: block; color: #0d1b2a; margin-bottom: 4px; font-size: 15px; }
+    .daymid input { padding: 5px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; max-width: 100%; }
+
+    .fsum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+    .fcard { background: white; border-radius: 10px; padding: 10px 4px; text-align: center; box-shadow: 0 1px 5px rgba(0,0,0,0.08); }
+    .fcard span { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+    .fcard b { font-size: 16px; color: #0d1b2a; }
+    .fcard b.neg { color: #dc2626; }
+    .fcard b.pos { color: #16a34a; }
+
+    .section { background: white; border-radius: 10px; padding: 15px; margin-bottom: 16px; box-shadow: 0 1px 5px rgba(0,0,0,0.08); }
+    .section h3 { margin: 0; color: #0d1b2a; font-size: 15px; }
+    .sec-head { display: flex; justify-content: space-between; align-items: center; }
+    .sec-head span { font-size: 13px; font-weight: bold; color: #0d1b2a; }
+    .fl-list { margin-top: 8px; }
+    .fl-row { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid #f0f0f0; }
+    .fl-row:last-child { border-bottom: none; }
+    .fl-main { flex: 1; min-width: 0; }
+    .fl-main b { display: block; font-size: 14px; }
+    .fl-main small { color: #777; font-size: 12px; }
+    .fl-amt { font-weight: bold; font-size: 14px; color: #16a34a; white-space: nowrap; }
+    .fl-amt.neg { color: #dc2626; }
+    .fl-del { background: #f3f4f6; border: none; border-radius: 6px; padding: 6px 9px; font-size: 14px; }
+    .empty { text-align: center; color: #888; padding: 18px 0; font-size: 14px; }
+
+    .addx { display: flex; gap: 8px; margin-top: 12px; }
+    .addx input { padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; text-align: right; min-width: 0; }
+    .addx input.t { flex: 2; }
+    .addx input.a { flex: 1; }
+    .addx button { background: #0d1b2a; color: white; border: none; border-radius: 6px; padding: 10px 14px; font-family: inherit; }
+
+    .legend { display: flex; gap: 14px; margin-top: 8px; font-size: 12px; color: #555; }
+    .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-left: 5px; vertical-align: middle; }
+    .fchart { display: flex; align-items: flex-end; gap: 6px; height: 165px; margin-top: 12px; }
+    .fday { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+    .fpair { display: flex; align-items: flex-end; gap: 2px; width: 100%; justify-content: center; }
+    .fcol { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; min-width: 0; }
+    .fval { font-size: 9px; color: #333; height: 12px; line-height: 12px; }
+    .fbar { width: 100%; border-radius: 3px 3px 0 0; }
+    .bar-label { font-size: 10px; color: #666; margin-top: 4px; }
+
+    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #0d1b2a; color: white; padding: 10px 18px; border-radius: 20px; font-size: 14px; display: none; z-index: 6000; }
+  </style>
+  <script>
+    function showError(msg) {
+      var d = document.getElementById('diag');
+      if (!d) return;
+      d.style.display = 'block';
+      d.textContent = msg;
+    }
+    window.addEventListener('error', function (e) { showError('خطأ في الصفحة: ' + e.message); });
+    window.addEventListener('unhandledrejection', function (e) {
+      showError('خطأ: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="top">
+    <a href="admin.html">→ رجوع للوحة</a>
+    <h2>💰 المالية</h2>
+  </div>
+
+  <div id="diag"></div>
+  <div id="loading">جاري التحميل...</div>
+
+  <div id="content" style="display:none;">
+    <div class="daynav">
+      <button id="prevDay">→ السابق</button>
+      <div class="daymid">
+        <b id="dayLabel"></b>
+        <input type="date" id="dayPick">
+      </div>
+      <button id="nextDay">التالي ←</button>
+    </div>
+
+    <div class="fsum" id="finSummary"></div>
+
+    <div class="section">
+      <div class="sec-head"><h3>الحلاقات</h3><span id="hairTotal"></span></div>
+      <div class="fl-list" id="hairList"></div>
+    </div>
+
+    <div class="section">
+      <div class="sec-head"><h3>المصاريف</h3><span id="expTotal"></span></div>
+      <div class="fl-list" id="expList"></div>
+      <div class="addx">
+        <input class="t" type="text" id="expTitle" maxlength="60" placeholder="المصروف (مثال: كهرباء)">
+        <input class="a" type="number" id="expAmount" inputmode="decimal" min="0" placeholder="المبلغ">
+        <button id="expAdd">إضافة</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>الإيرادات والمصاريف آخر 7 أيام</h3>
+      <div class="legend">
+        <span><i style="background:#0d1b2a"></i>إيرادات</span>
+        <span><i style="background:#dc2626"></i>مصاريف</span>
+      </div>
+      <div class="fchart" id="finChart"></div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    const SUPABASE_URL = "https://ynqnyuidxpjfcvcgexoi.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlucW55dWlkeHBqZmN2Y2dleG9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzNTUyMDAsImV4cCI6MjEwNTkzMTIwMH0.SRsgeU3_JSm-INcEYC-p5OzbwVoxZHWHFzaZnwa5UjY";
+
+    const $ = (id) => document.getElementById(id);
+
+    function el(tag, cls, text) {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text !== undefined) e.textContent = text;
+      return e;
+    }
+    function startOfDay(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+    function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function toInput(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+    function fmtTime(iso) { return new Date(iso).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }); }
+    function num(v) { const n = Number(v); return isNaN(n) ? 0 : n; }
+    function money(n) { return (Math.round(n * 100) / 100) + ' ج'; }
+    function shortNum(n) { n = Math.round(n); return n >= 10000 ? Math.round(n / 1000) + 'k' : String(n); }
+
+    function dayLabel(d) {
+      const diff = Math.round((d - startOfDay(new Date())) / 86400000);
+      if (diff === 0) return 'اليوم';
+      if (diff === -1) return 'أمس';
+      return d.toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' });
+    }
+
+    function toast(text) {
+      const t = $('toast');
+      t.textContent = text;
+      t.style.display = 'block';
+      setTimeout(() => { t.style.display = 'none'; }, 2200);
+    }
+
+    function explain(what, error) {
+      const m = (error && error.message) ? error.message : String(error);
+      let hint = '';
+      if (/expenses/i.test(m)) hint = ' — شغّل كود الـ SQL الخاص بالمصاريف';
+      else if (/done_at|amount|barber_name|service/i.test(m)) hint = ' — شغّل كود الـ SQL الخاص بالأعمدة';
+      showError(what + ': ' + m + hint);
+    }
+
+    let db = null;
+    let myName = '';
+    let day = startOfDay(new Date());
+
+    async function loadDay() {
+      $('dayLabel').textContent = dayLabel(day);
+      $('dayPick').value = toInput(day);
+      $('nextDay').disabled = day >= startOfDay(new Date());
+
+      const s = day.toISOString();
+      const e = addDays(day, 1).toISOString();
+
+      const [dn, ex] = await Promise.all([
+        db.from('bookings').select('*').eq('status', 'done')
+          .gte('done_at', s).lt('done_at', e).order('done_at', { ascending: true }),
+        db.from('expenses').select('*')
+          .eq('spent_on', toInput(day)).order('created_at', { ascending: true })
+      ]);
+
+      if (dn.error) { explain('تحميل الحلاقات', dn.error); return false; }
+      if (ex.error) { explain('تحميل المصاريف', ex.error); return false; }
+
+      const hair = dn.data || [];
+      const exps = ex.data || [];
+      const rev = hair.reduce((a, r) => a + num(r.amount), 0);
+      const exp = exps.reduce((a, r) => a + num(r.amount), 0);
+      const net = rev - exp;
+
+      const sum = $('finSummary');
+      sum.innerHTML = '';
+      [['إيرادات', rev, ''], ['مصاريف', exp, 'neg'], ['الصافي', net, net >= 0 ? 'pos' : 'neg']].forEach((row) => {
+        const card = el('div', 'fcard');
+        card.appendChild(el('span', '', row[0]));
+        card.appendChild(el('b', row[2], money(row[1])));
+        sum.appendChild(card);
+      });
+
+      $('hairTotal').textContent = hair.length + ' • ' + money(rev);
+      $('expTotal').textContent = money(exp);
+
+      const hairList = $('hairList');
+      hairList.innerHTML = '';
+      if (hair.length === 0) hairList.appendChild(el('div', 'empty', 'مفيش حلاقات متسجلة في اليوم ده'));
+      hair.forEach((b) => {
+        const r = el('div', 'fl-row');
+        const main = el('div', 'fl-main');
+        main.appendChild(el('b', '', b.name));
+        main.appendChild(el('small', '', (b.service || '-') + ' • ' + (b.barber_name || '-') + ' • ' + fmtTime(b.done_at || b.created_at)));
+        r.appendChild(main);
+        r.appendChild(el('span', 'fl-amt', '+' + money(num(b.amount))));
+        hairList.appendChild(r);
+      });
+
+      const expList = $('expList');
+      expList.innerHTML = '';
+      if (exps.length === 0) expList.appendChild(el('div', 'empty', 'مفيش مصاريف في اليوم ده'));
+      exps.forEach((x) => {
+        const r = el('div', 'fl-row');
+        const main = el('div', 'fl-main');
+        main.appendChild(el('b', '', x.title));
+        main.appendChild(el('small', '', 'بواسطة ' + (x.added_by || '-')));
+        r.appendChild(main);
+        r.appendChild(el('span', 'fl-amt neg', '-' + money(num(x.amount))));
+        const del = el('button', 'fl-del', '🗑️');
+        del.onclick = () => deleteExpense(x);
+        r.appendChild(del);
+        expList.appendChild(r);
+      });
+      return true;
+    }
+
+    async function loadChart() {
+      const today = startOfDay(new Date());
+      const weekStart = addDays(today, -6);
+
+      const [dn, ex] = await Promise.all([
+        db.from('bookings').select('amount,done_at').eq('status', 'done').gte('done_at', weekStart.toISOString()),
+        db.from('expenses').select('amount,spent_on').gte('spent_on', toInput(weekStart))
+      ]);
+      if (dn.error) { explain('تحميل المخطط', dn.error); return; }
+      if (ex.error) { explain('تحميل المخطط', ex.error); return; }
+
+      const done = dn.data || [];
+      const exps = ex.data || [];
+      const days = [];
+      for (let i = 6; i >= 0; i--) {
+        const s = addDays(today, -i);
+        const e = addDays(s, 1);
+        const key = toInput(s);
+        days.push({
+          label: s.toLocaleDateString('ar-EG', { weekday: 'short' }),
+          revenue: done.filter((r) => { const t = new Date(r.done_at); return t >= s && t < e; })
+            .reduce((a, r) => a + num(r.amount), 0),
+          expense: exps.filter((r) => r.spent_on === key).reduce((a, r) => a + num(r.amount), 0)
+        });
+      }
+
+      const fmax = Math.max.apply(null, days.map((d) => Math.max(d.revenue, d.expense)).concat([1]));
+      const fc = $('finChart');
+      fc.innerHTML = '';
+      days.forEach((d) => {
+        const col = el('div', 'fday');
+        const pair = el('div', 'fpair');
+        [['revenue', '#0d1b2a'], ['expense', '#dc2626']].forEach((k) => {
+          const c = el('div', 'fcol');
+          c.appendChild(el('span', 'fval', d[k[0]] > 0 ? shortNum(d[k[0]]) : ''));
+          const bar = el('div', 'fbar');
+          bar.style.background = k[1];
+          bar.style.height = (d[k[0]] > 0 ? Math.max((d[k[0]] / fmax) * 100, 3) : 0) + 'px';
+          c.appendChild(bar);
+          pair.appendChild(c);
+        });
+        col.appendChild(pair);
+        col.appendChild(el('span', 'bar-label', d.label));
+        fc.appendChild(col);
+      });
+    }
+
+    async function reloadAll() {
+      await loadDay();
+      await loadChart();
+    }
+
+    async function addExpense() {
+      const title = $('expTitle').value.trim();
+      const amount = parseFloat($('expAmount').value);
+      if (!title) { alert('اكتب اسم المصروف'); return; }
+      if (!(amount > 0)) { alert('اكتب المبلغ'); return; }
+
+      const btn = $('expAdd');
+      btn.disabled = true;
+      const res = await db.from('expenses').insert([{
+        title: title,
+        amount: amount,
+        spent_on: toInput(day),
+        added_by: myName
+      }]);
+      btn.disabled = false;
+
+      if (res.error) { explain('إضافة المصروف', res.error); return; }
+      $('expTitle').value = '';
+      $('expAmount').value = '';
+      toast('تمت إضافة المصروف');
+      reloadAll();
+    }
+
+    async function deleteExpense(x) {
+      if (!confirm('تمسح مصروف "' + x.title + '"؟')) return;
+      const res = await db.from('expenses').delete().eq('id', x.id).select();
+      if (res.error || !res.data || res.data.length === 0) { alert('ما اتمسحش، جرب تاني'); return; }
+      toast('تم المسح');
+      reloadAll();
+    }
+
+    function bindUI() {
+      $('prevDay').onclick = () => { day = addDays(day, -1); loadDay(); };
+      $('nextDay').onclick = () => {
+        if (day < startOfDay(new Date())) { day = addDays(day, 1); loadDay(); }
+      };
+      $('dayPick').onchange = () => {
+        const v = $('dayPick').value;
+        if (!v) return;
+        const p = v.split('-');
+        let d = new Date(+p[0], +p[1] - 1, +p[2]);
+        const today = startOfDay(new Date());
+        if (d > today) d = today;
+        day = d;
+        loadDay();
+      };
+      $('expAdd').onclick = addExpense;
+      document.addEventListener('visibilitychange', () => { if (!document.hidden && db) reloadAll(); });
+    }
+
+    async function init() {
+      try {
+        if (SUPABASE_ANON_KEY.indexOf('YOUR_') === 0) {
+          $('loading').style.display = 'none';
+          showError('المفتاح لسه ما اتحطش في الكود (YOUR_ANON_KEY)');
+          return;
+        }
+        db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const sess = await db.auth.getSession();
+        const session = sess.data && sess.data.session;
+        if (!session) { window.location.href = 'barber-login.html'; return; }
+
+        const st = await db.from('staff').select('name,role')
+          .eq('email', session.user.email.toLowerCase()).maybeSingle();
+        if (st.error) {
+          $('loading').style.display = 'none';
+          explain('قراءة بيانات الموظف', st.error);
+          return;
+        }
+        if (!st.data) {
+          $('loading').style.display = 'none';
+          showError('الإيميل ' + session.user.email + ' مش مسجل في جدول staff');
+          return;
+        }
+        myName = st.data.name;
+
+        bindUI();
+        await reloadAll();
+        $('loading').style.display = 'none';
+        $('content').style.display = 'block';
+      } catch (err) {
+        $('loading').style.display = 'none';
+        showError('خطأ: ' + (err && err.message ? err.message : err));
+      }
+    }
+
+    init();
+  </script>
+</body>
+  </html>
