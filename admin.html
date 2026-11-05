@@ -3,94 +3,443 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>لوحة تحكم الأدمن</title>
+  <title>لوحة الحلاق - Super Star</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    body { margin: 0; font-family: Arial, sans-serif; background: #f3f4f8; padding: 20px; }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    h2 { color: #0d1b2a; margin: 0; }
-    button.logout { background: #dc2626; color: white; border: none; padding: 8px 14px; border-radius: 6px; }
-    .booking-card { background: white; border-radius: 10px; padding: 15px; margin-bottom: 12px; box-shadow: 0 1px 5px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; }
-    .info b { display: block; font-size: 16px; }
-    .info span { font-size: 13px; color: #666; display: block; }
-    .info .time { color: #0d1b2a; font-weight: bold; margin-top: 4px; }
-    .delete-btn { background: #f3f4f6; border: none; color: #dc2626; padding: 8px 12px; border-radius: 6px; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, sans-serif; background: #f3f4f8; padding: 16px; color: #222; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .header h2 { margin: 0; color: #0d1b2a; font-size: 19px; }
+    .header small { display: block; color: #666; font-size: 12px; margin-top: 2px; }
+    button.logout { background: #dc2626; color: white; border: none; padding: 8px 14px; border-radius: 6px; font-size: 13px; }
     #loading { text-align: center; color: #666; margin-top: 40px; }
+
+    .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .tile { background: #0d1b2a; color: white; border: none; border-radius: 14px; padding: 20px 8px; text-align: center; font-size: 15px; cursor: pointer; font-family: inherit; }
+    .tile .ic { font-size: 30px; display: block; margin-bottom: 8px; }
+    .tile.soon { opacity: 0.55; }
+
+    .stats { display: flex; gap: 10px; margin-bottom: 16px; }
+    .stat { flex: 1; background: white; border-radius: 10px; padding: 12px 6px; text-align: center; box-shadow: 0 1px 5px rgba(0,0,0,0.08); }
+    .stat span { font-size: 12px; color: #666; display: block; margin-bottom: 4px; }
+    .stat b { font-size: 22px; color: #0d1b2a; }
+
+    .section { background: white; border-radius: 10px; padding: 15px; margin-bottom: 16px; box-shadow: 0 1px 5px rgba(0,0,0,0.08); }
+    .section h3 { margin: 0; color: #0d1b2a; font-size: 15px; }
+    .chart-bars { display: flex; align-items: flex-end; gap: 6px; height: 150px; margin-top: 15px; }
+    .bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+    .bar { width: 100%; background: #0d1b2a; border-radius: 4px 4px 0 0; }
+    .bar-label { font-size: 10px; color: #666; margin-top: 4px; }
+    .bar-count { font-size: 11px; color: #0d1b2a; font-weight: bold; }
+
+    button.back { background: none; border: none; color: #0d1b2a; font-size: 15px; padding: 4px 0 12px; cursor: pointer; font-family: inherit; }
+    .daynav { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .daynav button { background: #0d1b2a; color: white; border: none; border-radius: 8px; padding: 10px 12px; font-size: 13px; font-family: inherit; }
+    .daynav button:disabled { opacity: 0.35; }
+    .daymid { flex: 1; text-align: center; }
+    .daymid b { display: block; color: #0d1b2a; margin-bottom: 4px; font-size: 15px; }
+    .daymid input { padding: 5px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; max-width: 100%; }
+
+    .summary { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+    .chip { background: white; border-radius: 20px; padding: 6px 12px; font-size: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+    .bk { background: white; border-radius: 10px; padding: 12px; margin-bottom: 10px; box-shadow: 0 1px 5px rgba(0,0,0,0.08); border-right: 4px solid #f59e0b; }
+    .bk.done { border-right-color: #16a34a; }
+    .bk.cancelled { border-right-color: #9ca3af; opacity: 0.7; }
+    .bk-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .bk-num { background: #0d1b2a; color: white; border-radius: 12px; padding: 2px 8px; font-size: 12px; }
+    .bk-name { flex: 1; font-size: 16px; }
+    .tag { font-size: 11px; padding: 3px 9px; border-radius: 10px; background: #fef3c7; color: #92400e; }
+    .tag.done { background: #dcfce7; color: #166534; }
+    .tag.cancelled { background: #e5e7eb; color: #4b5563; }
+    .bk-info { font-size: 13px; color: #555; line-height: 1.9; }
+    .bk-info a { color: #0d1b2a; font-weight: bold; text-decoration: none; }
+    .bk-done { margin-top: 6px; font-size: 13px; color: #166534; font-weight: bold; }
+    .bk-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .bk-actions button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-size: 14px; font-family: inherit; }
+    .btn-done { background: #16a34a; color: white; }
+    .btn-cancel { background: #f3f4f6; color: #dc2626; }
+    .empty { text-align: center; color: #888; padding: 30px 0; }
+
+    .modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 5000; padding: 20px; }
+    .modal-box { background: white; border-radius: 14px; padding: 20px; width: 100%; max-width: 340px; }
+    .modal-box h3 { margin: 0 0 4px; color: #0d1b2a; }
+    .modal-box p { margin: 0 0 14px; color: #666; font-size: 13px; }
+    .modal-box label { display: block; font-size: 13px; margin-bottom: 4px; }
+    .modal-box select, .modal-box input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 12px; font-family: inherit; text-align: right; }
+    .modal-actions { display: flex; gap: 8px; }
+    .modal-actions button { flex: 1; padding: 11px; border: none; border-radius: 8px; font-size: 15px; font-family: inherit; }
+    #doneConfirm { background: #16a34a; color: white; }
+    #doneClose { background: #f3f4f6; color: #333; }
+
+    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #0d1b2a; color: white; padding: 10px 18px; border-radius: 20px; font-size: 14px; display: none; z-index: 6000; }
   </style>
 </head>
 <body>
   <div class="header">
-    <h2>الحجوزات</h2>
+    <div>
+      <h2>لوحة الحلاق</h2>
+      <small id="hello"></small>
+    </div>
     <button class="logout" id="logoutBtn">تسجيل خروج</button>
   </div>
+
   <div id="loading">جاري التحميل...</div>
-  <div id="bookingsList"></div>
+
+  <div id="homeView" style="display:none;">
+    <div class="tiles">
+      <button class="tile" id="tileBookings"><span class="ic">📅</span>الحجوزات</button>
+      <button class="tile soon" data-soon="1"><span class="ic">💰</span>المالية</button>
+      <button class="tile soon" data-soon="1"><span class="ic">📊</span>التقرير الشهري</button>
+      <button class="tile soon" data-soon="1"><span class="ic">💬</span>التواصل مع مهندس SIS</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><span>حجوزات النهاردة</span><b id="stTotal">0</b></div>
+      <div class="stat"><span>في الانتظار</span><b id="stWaiting">0</b></div>
+      <div class="stat"><span>تمت</span><b id="stDone">0</b></div>
+    </div>
+
+    <div class="section">
+      <h3>الحجوزات آخر 7 أيام</h3>
+      <div class="chart-bars" id="chartBars"></div>
+    </div>
+  </div>
+
+  <div id="bookingsView" style="display:none;">
+    <button class="back" id="backBtn">→ رجوع</button>
+    <div class="daynav">
+      <button id="prevDay">→ السابق</button>
+      <div class="daymid">
+        <b id="dayLabel"></b>
+        <input type="date" id="dayPick">
+      </div>
+      <button id="nextDay">التالي ←</button>
+    </div>
+    <div class="summary" id="daySummary"></div>
+    <div id="bookingsList"></div>
+  </div>
+
+  <div class="modal" id="doneModal">
+    <div class="modal-box">
+      <h3>تمت الحلاقة ✂️</h3>
+      <p id="doneFor"></p>
+      <label>الخدمة</label>
+      <select id="serviceSel"></select>
+      <label>المبلغ اللي العميل دفعه (جنيه)</label>
+      <input type="number" id="amountInput" inputmode="decimal" min="0">
+      <div class="modal-actions">
+        <button id="doneConfirm">تأكيد</button>
+        <button id="doneClose">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
 
   <script>
     const SUPABASE_URL = "https://ynqnyuidxpjfcvcgexoi.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlucW55dWlkeHBqZmN2Y2dleG9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzNTUyMDAsImV4cCI6MjEwNTkzMTIwMH0.SRsgeU3_JSm-INcEYC-p5OzbwVoxZHWHFzaZnwa5UjY";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const listEl = document.getElementById('bookingsList');
-    const loadingEl = document.getElementById('loading');
+    const SERVICES = {
+      haircut: { label: 'حلاقة', price: 50 },
+      beard: { label: 'دقن', price: 30 },
+      both: { label: 'حلاقة + دقن', price: 80 },
+      other: { label: 'أخرى', price: 0 }
+    };
+    const STATUS_TXT = { waiting: 'في الانتظار', done: 'تمت', cancelled: 'ملغي' };
 
-    async function checkAuthAndLoad() {
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      if (!session) {
-        window.location.href = "index.html";
-        return;
-      }
-      loadBookings();
+    let myName = '';
+    let currentDay = startOfDay(new Date());
+    let doneId = null;
+    let activeView = 'home';
+
+    const $ = (id) => document.getElementById(id);
+
+    function el(tag, cls, text) {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text !== undefined) e.textContent = text;
+      return e;
+    }
+    function startOfDay(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+    function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function toInput(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+    function fmtTime(iso) { return new Date(iso).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }); }
+
+    function dayLabel(d) {
+      const diff = Math.round((d - startOfDay(new Date())) / 86400000);
+      if (diff === 0) return 'اليوم';
+      if (diff === -1) return 'أمس';
+      return d.toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' });
     }
 
-    async function loadBookings() {
-      const { data, error } = await supabaseClient
-        .from('bookings')
-        .select('*')
-        .order('created_at', { ascending: false });
+    function toast(text) {
+      const t = $('toast');
+      t.textContent = text;
+      t.style.display = 'block';
+      setTimeout(() => { t.style.display = 'none'; }, 2200);
+    }
 
-      loadingEl.style.display = "none";
+    function showView(name) {
+      activeView = name;
+      $('homeView').style.display = name === 'home' ? 'block' : 'none';
+      $('bookingsView').style.display = name === 'bookings' ? 'block' : 'none';
+      window.scrollTo(0, 0);
+    }
+
+    async function loadHome() {
+      const todayStart = startOfDay(new Date());
+      const weekStart = addDays(todayStart, -6);
+      const { data } = await supabaseClient
+        .from('bookings').select('created_at,status')
+        .gte('created_at', weekStart.toISOString());
+      const rows = data || [];
+
+      const days = [];
+      for (let i = 6; i >= 0; i--) {
+        const s = addDays(todayStart, -i);
+        const e = addDays(s, 1);
+        const count = rows.filter(r => {
+          const t = new Date(r.created_at);
+          return t >= s && t < e && r.status !== 'cancelled';
+        }).length;
+        days.push({ label: s.toLocaleDateString('ar-EG', { weekday: 'short' }), count });
+      }
+
+      const todayRows = rows.filter(r => new Date(r.created_at) >= todayStart);
+      $('stTotal').textContent = todayRows.filter(r => r.status !== 'cancelled').length;
+      $('stWaiting').textContent = todayRows.filter(r => r.status === 'waiting').length;
+      $('stDone').textContent = todayRows.filter(r => r.status === 'done').length;
+
+      const max = Math.max(...days.map(d => d.count), 1);
+      const chart = $('chartBars');
+      chart.innerHTML = '';
+      days.forEach(d => {
+        const wrap = el('div', 'bar-wrap');
+        wrap.appendChild(el('span', 'bar-count', d.count));
+        const bar = el('div', 'bar');
+        bar.style.height = (d.count > 0 ? Math.max((d.count / max) * 100, 4) : 0) + 'px';
+        wrap.appendChild(bar);
+        wrap.appendChild(el('span', 'bar-label', d.label));
+        chart.appendChild(wrap);
+      });
+    }
+
+    function updateNav() {
+      $('dayLabel').textContent = dayLabel(currentDay);
+      $('dayPick').value = toInput(currentDay);
+      $('nextDay').disabled = currentDay >= startOfDay(new Date());
+    }
+
+    function buildCard(b, n) {
+      const card = el('div', 'bk ' + b.status);
+
+      const top = el('div', 'bk-top');
+      top.appendChild(el('span', 'bk-num', '#' + n));
+      top.appendChild(el('b', 'bk-name', b.name));
+      top.appendChild(el('span', 'tag ' + b.status, STATUS_TXT[b.status] || b.status));
+      card.appendChild(top);
+
+      const info = el('div', 'bk-info');
+      const phoneLine = el('div');
+      phoneLine.appendChild(document.createTextNode('📞 '));
+      const a = el('a', '', b.phone);
+      a.href = 'tel:' + String(b.phone).replace(/[^0-9+]/g, '');
+      phoneLine.appendChild(a);
+      info.appendChild(phoneLine);
+      info.appendChild(el('div', '', '⏰ ' + fmtTime(b.created_at)));
+      if (b.code) info.appendChild(el('div', '', '🎟️ ' + b.code));
+      card.appendChild(info);
+
+      if (b.status === 'done') {
+        const amount = b.amount != null ? b.amount : 0;
+        card.appendChild(el('div', 'bk-done',
+          '✂️ ' + (b.barber_name || '-') + ' • ' + (b.service || '') + ' • ' + amount + ' ج'));
+      }
+
+      if (b.status === 'waiting') {
+        const row = el('div', 'bk-actions');
+        const doneBtn = el('button', 'btn-done', 'تمت الحلاقة');
+        doneBtn.onclick = () => openDone(b);
+        const cancelBtn = el('button', 'btn-cancel', 'إلغاء');
+        cancelBtn.onclick = () => cancelBooking(b);
+        row.appendChild(doneBtn);
+        row.appendChild(cancelBtn);
+        card.appendChild(row);
+      }
+      return card;
+    }
+
+    async function loadDay() {
+      updateNav();
+      const start = currentDay;
+      const end = addDays(currentDay, 1);
+      const { data, error } = await supabaseClient
+        .from('bookings').select('*')
+        .gte('created_at', start.toISOString())
+        .lt('created_at', end.toISOString())
+        .order('created_at', { ascending: true });
+
+      const list = $('bookingsList');
+      const summary = $('daySummary');
+      list.innerHTML = '';
+      summary.innerHTML = '';
 
       if (error) {
-        listEl.innerHTML = "<p>حصل خطأ في تحميل الحجوزات</p>";
+        list.appendChild(el('div', 'empty', 'حصل خطأ في تحميل الحجوزات'));
         return;
       }
 
-      if (data.length === 0) {
-        listEl.innerHTML = "<p>مفيش حجوزات لسه</p>";
+      const rows = data || [];
+      summary.appendChild(el('span', 'chip', 'الكل: ' + rows.length));
+      summary.appendChild(el('span', 'chip', 'انتظار: ' + rows.filter(r => r.status === 'waiting').length));
+      summary.appendChild(el('span', 'chip', 'تمت: ' + rows.filter(r => r.status === 'done').length));
+      summary.appendChild(el('span', 'chip', 'ملغي: ' + rows.filter(r => r.status === 'cancelled').length));
+
+      if (rows.length === 0) {
+        list.appendChild(el('div', 'empty', 'مفيش حجوزات في اليوم ده'));
+        return;
+      }
+      rows.forEach((b, i) => list.appendChild(buildCard(b, i + 1)));
+    }
+
+    async function refresh() {
+      await loadHome();
+      if (activeView === 'bookings') await loadDay();
+    }
+
+    function openDone(b) {
+      doneId = b.id;
+      $('doneFor').textContent = b.name;
+      $('serviceSel').value = 'haircut';
+      $('amountInput').value = SERVICES.haircut.price;
+      $('doneModal').style.display = 'flex';
+    }
+    function closeModal() {
+      $('doneModal').style.display = 'none';
+      doneId = null;
+    }
+
+    async function confirmDone() {
+      const key = $('serviceSel').value;
+      const amount = parseFloat($('amountInput').value);
+      if (!(amount > 0)) { alert('اكتب المبلغ'); return; }
+
+      const btn = $('doneConfirm');
+      btn.disabled = true;
+      const { data, error } = await supabaseClient
+        .from('bookings')
+        .update({
+          status: 'done',
+          amount: amount,
+          service: SERVICES[key].label,
+          barber_name: myName,
+          done_at: new Date().toISOString()
+        })
+        .eq('id', doneId)
+        .eq('status', 'waiting')
+        .select();
+      btn.disabled = false;
+      closeModal();
+
+      if (error) { alert('حصل خطأ، جرب تاني'); return; }
+      if (!data || data.length === 0) alert('الحجز ده اتغير قبل كده');
+      else toast('تم تسجيل الحلاقة ✂️');
+      refresh();
+    }
+
+    async function cancelBooking(b) {
+      if (!confirm('تلغي حجز ' + b.name + '؟')) return;
+      const { data, error } = await supabaseClient
+        .from('bookings')
+        .update({ status: 'cancelled' })
+        .eq('id', b.id)
+        .eq('status', 'waiting')
+        .select();
+      if (error) { alert('حصل خطأ، جرب تاني'); return; }
+      if (!data || data.length === 0) alert('الحجز ده اتغير قبل كده');
+      else toast('تم إلغاء الحجز');
+      refresh();
+    }
+
+    function setupUI() {
+      const sel = $('serviceSel');
+      Object.keys(SERVICES).forEach(k => {
+        const o = el('option', '', SERVICES[k].price > 0 ? SERVICES[k].label + ' - ' + SERVICES[k].price + ' ج' : SERVICES[k].label);
+        o.value = k;
+        sel.appendChild(o);
+      });
+      sel.addEventListener('change', () => {
+        const p = SERVICES[sel.value].price;
+        $('amountInput').value = p > 0 ? p : '';
+      });
+
+      $('tileBookings').onclick = () => { showView('bookings'); loadDay(); };
+      document.querySelectorAll('[data-soon]').forEach(t => {
+        t.onclick = () => toast('هتتفعل في المرحلة الجاية');
+      });
+      $('backBtn').onclick = () => { showView('home'); loadHome(); };
+
+      $('prevDay').onclick = () => { currentDay = addDays(currentDay, -1); loadDay(); };
+      $('nextDay').onclick = () => {
+        if (currentDay < startOfDay(new Date())) { currentDay = addDays(currentDay, 1); loadDay(); }
+      };
+      $('dayPick').onchange = () => {
+        const v = $('dayPick').value;
+        if (!v) return;
+        const p = v.split('-');
+        let d = new Date(+p[0], +p[1] - 1, +p[2]);
+        const today = startOfDay(new Date());
+        if (d > today) d = today;
+        currentDay = d;
+        loadDay();
+      };
+
+      $('doneConfirm').onclick = confirmDone;
+      $('doneClose').onclick = closeModal;
+      $('doneModal').addEventListener('click', (e) => { if (e.target === $('doneModal')) closeModal(); });
+
+      $('logoutBtn').addEventListener('click', async () => {
+        await supabaseClient.auth.signOut();
+        window.location.href = 'barber-login.html';
+      });
+    }
+
+    async function init() {
+      setupUI();
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) { window.location.href = 'barber-login.html'; return; }
+
+      const { data: staff } = await supabaseClient
+        .from('staff').select('name,role').eq('email', session.user.email).single();
+      if (!staff) {
+        await supabaseClient.auth.signOut();
+        window.location.href = 'barber-login.html';
         return;
       }
 
-      listEl.innerHTML = data.map(b => {
-        const d = new Date(b.created_at);
-        const dateStr = d.toLocaleDateString('ar-EG');
-        const timeStr = d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-        return `
-        <div class="booking-card">
-          <div class="info">
-            <b>${b.name}</b>
-            <span>${b.phone}</span>
-            <span class="time">${dateStr} - ${timeStr}</span>
-          </div>
-          <button class="delete-btn" onclick="deleteBooking(${b.id})">حذف</button>
-        </div>
-      `;
-      }).join('');
+      myName = staff.name;
+      $('hello').textContent = 'أهلاً ' + myName;
+      await loadHome();
+      $('loading').style.display = 'none';
+      showView('home');
+
+      let timer = null;
+      supabaseClient
+        .channel('bookings-live')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, () => {
+          clearTimeout(timer);
+          timer = setTimeout(refresh, 400);
+        })
+        .subscribe();
     }
 
-    async function deleteBooking(id) {
-      if (!confirm("متأكد إنك عايز تحذف الحجز ده؟")) return;
-      await supabaseClient.from('bookings').delete().eq('id', id);
-      loadBookings();
-    }
-
-    document.getElementById('logoutBtn').addEventListener('click', async () => {
-      await supabaseClient.auth.signOut();
-      window.location.href = "index.html";
-    });
-
-    checkAuthAndLoad();
+    init();
   </script>
+
   <script src="notifications.js"></script>
   <script src="maintenance.js"></script>
 </body>
