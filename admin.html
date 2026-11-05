@@ -211,7 +211,10 @@
   <script>
     const SUPABASE_URL = "https://ynqnyuidxpjfcvcgexoi.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlucW55dWlkeHBqZmN2Y2dleG9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzNTUyMDAsImV4cCI6MjEwNTkzMTIwMH0.SRsgeU3_JSm-INcEYC-p5OzbwVoxZHWHFzaZnwa5UjY";
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const keyMissing = SUPABASE_ANON_KEY.indexOf('YOUR_') === 0;
+    let supabaseClient;
+    if (!keyMissing) supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const SERVICES = {
       haircut: { label: 'حلاقة', price: 50 },
@@ -422,5 +425,4 @@
 
       const rows = data || [];
       summary.appendChild(el('span', 'chip', 'الكل: ' + rows.length));
-      summary.appendChild(el('span', 'chip', 'انتظار: ' + rows.filter(r => r.status === 'waiting').length));
-      summary.appendChild(el('span', 'chip', 'تمت: ' + rows.filter(r => r.status === 'done').length
+      summary.appendChild(el('span', 'chip', 'انتظار: ' + rows.filter(r => r.status 
