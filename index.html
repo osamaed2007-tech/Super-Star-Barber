@@ -79,14 +79,8 @@
       submitBtn.textContent = "جاري الحجز...";
       messageEl.textContent = "";
 
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
-      const { count } = await supabaseClient
-        .from('bookings')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', startOfDay.toISOString());
-
-      const queuePosition = (count || 0) + 1;
+            const { data: ahead } = await supabaseClient.rpc('today_booking_count');
+      const queuePosition = (ahead || 0) + 1;
 
       const { error } = await supabaseClient
         .from('bookings')
