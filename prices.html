@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>الأسعار والخدمات - Super Star</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, sans-serif; background: #f3f4f8; padding: 16px; color: #222; }
+    .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .top h2 { margin: 0; color: #0d1b2a; font-size: 19px; }
+    .top a { color: #0d1b2a; text-decoration: none; font-size: 15px; }
+    #diag { display: none; background: #fee2e2; color: #991b1b; border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 13px; line-height: 1.7; word-break: break-word; }
+    #loading { text-align: center; color: #666; margin-top: 40px; }
+    .card { background: white; border-radius: 12px; padding: 14px; margin-bottom: 10px; box-shadow: 0 1px 5px rgba(0,0,0,0.08); }
+    .card.off { opacity: 0.65; }
+    .fields { display: flex; gap: 8px; margin-bottom: 10px; }
+    .fields input { padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; font-size: 15px; min-width: 0; text-align: right; }
+    .fields .n { flex: 2; }
+    .fields .p { flex: 1; }
+    .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+    .acts button { border: none; border-radius: 6px; padding: 8px 12px; font-family: inherit; font-size: 13px; background: #f3f4f6; }
+    .acts .save { background: #0d1b2a; color: white; }
+    .acts .stop { background: #fef3c7; }
+    .acts .go { background: #16a34a; color: white; }
+    .acts .rm { background: #fee2e2; color: #991b1b; }
+    .add { background: white; border-radius: 12px; padding: 14px; margin-top: 16px; box-shadow: 0 1px 5px rgba(0,0,0,0.08); }
+    .add h3 { margin: 0 0 10px; color: #0d1b2a; font-size: 15px; }
+    .big { display: block; width: 100%; border: none; border-radius: 8px; padding: 12px; font-size: 15px; font-family: inherit; background: #0d1b2a; color: white; margin-top: 10px; }
+    .empty { text-align: center; color: #888; padding: 24px 0; }
+    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #0d1b2a; color: white; padding: 10px 18px; border-radius: 20px; font-size: 14px; display: none; }
+  </style>
+  <script>
+    function showError(msg) {
+      var d = document.getElementById('diag');
+      if (!d) return;
+      d.style.display = 'block';
+      d.textContent = msg;
+    }
+    window.addEventListener('error', function (e) { showError('خطأ في الصفحة: ' + e.message); });
+    window.addEventListener('unhandledrejection', function (e) {
+      showError('خطأ: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="top">
+    <a href="engineer-dashboard.html">→ رجوع للوحة</a>
+    <h2>🏷️ الأسعار والخدمات</h2>
+  </div>
+
+  <div id="diag"></div>
+  <div id="loading">جاري التحميل...</div>
+
+  <div id="content" style="display:none;">
+    <div id="list"></div>
+
+    <div class="add">
+      <h3>إضافة خدمة جديدة</h3>
+      <div class="fields">
+        <input class="n" type="text" id="newName" maxlength="40" placeholder="اسم الخدمة">
+        <input class="p" type="number" id="newPrice" inputmode="decimal" min="0" placeholder="السعر">
+      </div>
+      <button class="big" id="addBtn">إضافة</button>
+    </div>
+  </div>
+  <div id="toast"></div>
+
+  <script>
+    const SUPABASE_URL = "https://ynqnyuidxpjfcvcgexoi.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlucW55dWlkeHBqZmN2Y2dleG9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzNTUyMDAsImV4cCI6MjEwNTkzMTIwMH0.SRsgeU3_JSm-INcEYC-p5OzbwVoxZHWHFzaZnwa5UjY";
+
+    const $ = (id) => document.getElementById(id);
+    function el(tag, cls, text) {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text !== undefined) e.textContent = text;
+      return e;
+    }
+    let db = null;
+
+    function toast(t) {
+      const x = $('toast');
+      x.textContent = t; x.style.display = 'block';
+      setTimeout(() => { x.style.display = 'none'; }, 2000);
+    }
+    function sqlHint(m) { return /services/i.test(m) ? ' — شغّل كود SQL الخاص بالأسعار' : ''; }
+
+    async function change(fn, okText) {
+      const r = await fn();
+      if (r.error) { showError('خطأ: ' + r.error.message + sqlHint(r.error.message)); return; }
+      if (r.data && r.data.length === 0) { showError('ما اتعدلش، غالبًا كود SQL الخاص بالأسعار لسه ما اتشغلش'); return; }
+      $('diag').style.display = 'none';
+      toast(okText);
+      load();
+    }
+
+    async function load() {
+      const res = await db.from('services').select('*').order('sort_order', { ascending: true }).order('id', { ascending: true });
+      if (res.error) { showError('تحميل الخدمات: ' + res.error.message + sqlHint(res.error.message)); return; }
+      const rows = res.data || [];
+      const list = $('list');
+      list.innerHTML = '';
+
+      if (rows.length === 0) {
+        list.appendChild(el('div', 'empty', 'مفيش خدمات لسه'));
+        const seed = el('button', 'big', 'إضافة الخدمات الأساسية (حلاقة 50 • دقن 30 • الاتنين 80)');
+        seed.onclick = () => change(() => db.from('services').insert([
+          { name: 'حلاقة', price: 50, sort_order: 1 },
+          { name: 'دقن', price: 30, sort_order: 2 },
+          { name: 'حلاقة + دقن', price: 80, sort_order: 3 }
+        ]).select(), 'تمت الإضافة');
+        list.appendChild(seed);
+        return;
+      }
+
+      rows.forEach((s) => {
+        const card = el('div', 'card' + (s.active ? '' : ' off'));
+        const f = el('div', 'fields');
+        const n = el('input', 'n'); n.type = 'text'; n.value = s.name; n.maxLength = 40;
+        const p = el('input', 'p'); p.type = 'number'; p.value = s.price; p.min = 0; p.setAttribute('inputmode', 'decimal');
+        f.appendChild(n); f.appendChild(p);
+        card.appendChild(f);
+
+        const acts = el('div', 'acts');
+        const save = el('button', 'save', '💾 حفظ');
+        save.onclick = () => {
+          const name = n.value.trim(); const price = parseFloat(p.value);
+          if (!name) { alert('اكتب اسم الخدمة'); return; }
+          if (!(price >= 0)) { alert('اكتب السعر'); return; }
+          change(() => db.from('services').update({ name: name, price: price }).eq('id', s.id).select(), 'تم الحفظ');
+        };
+        acts.appendChild(save);
+
+        const tog = el('button', s.active ? 'stop' : 'go', s.active ? '⏸ إيقاف' : '▶️ تفعيل');
+        tog.onclick = () => change(() => db.from('services').update({ active: !s.active }).eq('id', s.id).select(), s.active ? 'تم الإيقاف' : 'تم التفعيل');
+        acts.appendChild(tog);
+
+        const rm = el('button', 'rm', '🗑️ حذف');
+        rm.onclick = () => {
+          if (confirm('تحذف "' + s.name + '"؟ (لو عاوز ترجعها بعد كده استخدم إيقاف)')) {
+            change(() => db.from('services').delete().eq('id', s.id).select(), 'تم الحذف');
+          }
+        };
+        acts.appendChild(rm);
+
+        card.appendChild(acts);
+        list.appendChild(card);
+      });
+    }
+
+    async function init() {
+      try {
+        db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const sess = await db.auth.getSession();
+        const session = sess.data && sess.data.session;
+        if (!session) { window.location.href = 'engineer-login.html'; return; }
+
+        const st = await db.from('staff').select('role').eq('email', session.user.email.toLowerCase()).maybeSingle();
+        if (st.error) { $('loading').style.display = 'none'; showError('قراءة بيانات الموظف: ' + st.error.message); return; }
+        if (!st.data || st.data.role !== 'engineer') {
+          $('loading').style.display = 'none';
+          showError('الصفحة دي للمهندس بس');
+          return;
+        }
+
+        $('addBtn').onclick = () => {
+          const name = $('newName').value.trim();
+          const price = parseFloat($('newPrice').value);
+          if (!name) { alert('اكتب اسم الخدمة'); return; }
+          if (!(price >= 0)) { alert('اكتب السعر'); return; }
+          change(() => db.from('services').insert([{ name: name, price: price, sort_order: 100 }]).select(), 'تمت الإضافة')
+            .then(() => { $('newName').value = ''; $('newPrice').value = ''; });
+        };
+
+        await load();
+        $('loading').style.display = 'none';
+        $('content').style.display = 'block';
+      } catch (err) {
+        $('loading').style.display = 'none';
+        showError('خطأ: ' + (err && err.message ? err.message : err));
+      }
+    }
+    init();
+  </script>
+</body>
+</html>
