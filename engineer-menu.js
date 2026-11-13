@@ -1,11 +1,12 @@
 (function () {
   // كل صفحة جديدة = سطر جديد هنا
-  var TOOLS = [
+    var TOOLS = [
     { icon: '📥', title: 'صندوق الرسائل', href: 'inbox.html', badge: 'messages' },
     { icon: '👥', title: 'إدارة الحلاقين', href: 'barbers.html' },
-    { icon: '📊', title: 'تقارير SIS', href: 'reports.html' }
+    { icon: '📊', title: 'تقارير SIS', href: 'reports.html' },
+    { icon: '🏷️', title: 'الأسعار والخدمات', href: 'prices.html' },
+    { icon: '🕘', title: 'ساعات العمل', href: 'hours.html' }
   ];
-
   var style = document.createElement('style');
   style.textContent =
     '.em-box{background:white;border-radius:12px;padding:14px;margin:16px;box-shadow:0 1px 5px rgba(0,0,0,0.08)}' +
