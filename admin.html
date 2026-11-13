@@ -142,7 +142,7 @@
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlucW55dWlkeHBqZmN2Y2dleG9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzNTUyMDAsImV4cCI6MjEwNTkzMTIwMH0.SRsgeU3_JSm-INcEYC-p5OzbwVoxZHWHFzaZnwa5UjY";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const SERVICES = {
+    let SERVICES = {
       haircut: { label: 'حلاقة', price: 50 },
       beard: { label: 'دقن', price: 30 },
       both: { label: 'حلاقة + دقن', price: 80 },
@@ -311,11 +311,37 @@
       if (activeView === 'bookings') await loadDay();
     }
 
-    function openDone(b) {
+    function fillServices() {
+      const sel = $('serviceSel');
+      sel.innerHTML = '';
+      Object.keys(SERVICES).forEach(k => {
+        const o = el('option', '', SERVICES[k].price > 0 ? SERVICES[k].label + ' - ' + SERVICES[k].price + ' ج' : SERVICES[k].label);
+        o.value = k;
+        sel.appendChild(o);
+      });
+    }
+
+    async function loadServices() {
+      try {
+        const { data, error } = await supabaseClient
+          .from('services').select('id,name,price').eq('active', true)
+          .order('sort_order', { ascending: true }).order('id', { ascending: true });
+        if (error || !data || data.length === 0) return;
+        const s = {};
+        data.forEach(r => { s['s' + r.id] = { label: r.name, price: Number(r.price) }; });
+        s.other = { label: 'أخرى', price: 0 };
+        SERVICES = s;
+        fillServices();
+      } catch (e) { /* لو حصل أي خطأ بنكمل بالأسعار الافتراضية */ }
+    }
+
+    async function openDone(b) {
       doneId = b.id;
       $('doneFor').textContent = b.name;
-      $('serviceSel').value = 'haircut';
-      $('amountInput').value = SERVICES.haircut.price;
+      await loadServices();
+      const first = Object.keys(SERVICES)[0];
+      $('serviceSel').value = first;
+      $('amountInput').value = SERVICES[first].price > 0 ? SERVICES[first].price : '';
       $('doneModal').style.display = 'flex';
     }
     function closeModal() {
@@ -367,11 +393,7 @@
 
     function setupUI() {
       const sel = $('serviceSel');
-      Object.keys(SERVICES).forEach(k => {
-        const o = el('option', '', SERVICES[k].price > 0 ? SERVICES[k].label + ' - ' + SERVICES[k].price + ' ج' : SERVICES[k].label);
-        o.value = k;
-        sel.appendChild(o);
-      });
+      fillServices();
       sel.addEventListener('change', () => {
         const p = SERVICES[sel.value].price;
         $('amountInput').value = p > 0 ? p : '';
@@ -414,8 +436,8 @@
       if (!session) { window.location.href = 'barber-login.html'; return; }
 
       const { data: staff } = await supabaseClient
-        .from('staff').select('name,role').eq('email', session.user.email).single();
-      if (!staff) {
+        .from('staff').select('name,role').eq('email', session.user.email.toLowerCase()).maybeSingle();
+      if (!staff || (staff.role !== 'barber' && staff.role !== 'engineer')) {
         await supabaseClient.auth.signOut();
         window.location.href = 'barber-login.html';
         return;
@@ -423,6 +445,7 @@
 
       myName = staff.name;
       $('hello').textContent = 'أهلاً ' + myName;
+      loadServices();
       await loadHome();
       $('loading').style.display = 'none';
       showView('home');
