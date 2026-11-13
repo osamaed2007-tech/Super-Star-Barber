@@ -81,11 +81,12 @@
       if (!supabaseClient) return;
 
       const name = document.getElementById('name').value.trim();
-      const phone = document.getElementById('phone').value.trim();
+      const phone = document.getElementById('phone').value.trim()
+        .replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
       const digits = phone.replace(/[^0-9]/g, '');
-      if (digits.length < 10 || digits.length > 15) {
+      if (!/^(01|201|00201)[0125][0-9]{8}$/.test(digits)) {
         messageEl.style.color = "red";
-        messageEl.textContent = "رقم التليفون مش صحيح، اكتب الرقم كامل (11 رقم)";
+        messageEl.textContent = "رقم التليفون مش صحيح، اكتب 11 رقم يبدأ بـ 01";
         return;
       }
       const now = new Date();
@@ -104,10 +105,10 @@
 
       if (error) {
         const m = String(error.message || '');
-        let txt = "حصل خطأ، حاول تاني";
+        let txt = "حصل خطأ، حاول تاني (" + m.slice(0, 80) + ")";
         if (m.indexOf('DUPLICATE_ACTIVE') !== -1) txt = "عندك حجز شغال النهاردة بالفعل. لما يخلص أو يتلغي تقدر تحجز تاني.";
-        else if (m.indexOf('QUEUE_FULL') !== -1) txt = "الطابور اكتمل النهاردة، الحجز مقفول لحد بكرة 🙏";
-        else if (m.indexOf('BAD_PHONE') !== -1) txt = "رقم التليفون مش صحيح، اكتب الرقم كامل (11 رقم)";
+        else if (m.indexOf('QUEUE_FULL') !== -1) txt = "الطابور اكتمل النهاردة، الحجز مقفول لحد بكرة 🤍";
+        else if (m.indexOf('BAD_PHONE') !== -1) txt = "رقم التليفون مش صحيح، اكتب 11 رقم يبدأ بـ 01";
         messageEl.style.color = "red";
         messageEl.textContent = txt;
         submitBtn.disabled = false;
