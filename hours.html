@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ساعات العمل - Super Star</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, sans-serif; background: #f3f4f8; padding: 16px; color: #222; }
+    .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .top h2 { margin: 0; color: #0d1b2a; font-size: 19px; }
+    .top a { color: #0d1b2a; text-decoration: none; font-size: 15px; }
+    #diag { display: none; background: #fee2e2; color: #991b1b; border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 13px; line-height: 1.7; word-break: break-word; }
+    #loading { text-align: center; color: #666; margin-top: 40px; }
+    .note { background: #eef2ff; border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; font-size: 13px; line-height: 1.7; }
+    #status { background: white; border-radius: 10px; padding: 12px; margin-bottom: 14px; text-align: center; font-size: 15px; font-weight: bold; }
+    #status.open { color: #166534; }
+    #status.closed { color: #991b1b; }
+    .day { background: white; border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; box-shadow: 0 1px 5px rgba(0,0,0,0.08); }
+    .day.off { background: #f9fafb; }
+    .dh { display: flex; justify-content: space-between; align-items: center; }
+    .dh b { color: #0d1b2a; font-size: 16px; }
+    .closedchk { font-size: 14px; display: flex; align-items: center; gap: 6px; }
+    .closedchk input { width: 20px; height: 20px; }
+    .times { display: flex; gap: 10px; margin-top: 10px; }
+    .times label { flex: 1; font-size: 12px; color: #666; }
+    .times input { width: 100%; margin-top: 4px; padding: 9px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; font-size: 15px; }
+    .big { display: block; width: 100%; border: none; border-radius: 8px; padding: 13px; font-size: 16px; font-family: inherit; background: #0d1b2a; color: white; margin-top: 6px; }
+    .big:disabled { opacity: 0.5; }
+    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #0d1b2a; color: white; padding: 10px 18px; border-radius: 20px; font-size: 14px; display: none; }
+  </style>
+  <script>
+    function showError(msg) {
+      var d = document.getElementById('diag');
+      if (!d) return;
+      d.style.display = 'block';
+      d.textContent = msg;
+    }
+    window.addEventListener('error', function (e) { showError('خطأ في الصفحة: ' + e.message); });
+    window.addEventListener('unhandledrejection', function (e) {
+      showError('خطأ: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="top">
+    <a href="engineer-dashboard.html">→ رجوع للوحة</a>
+    <h2>🕘 ساعات العمل</h2>
+  </div>
+
+  <div id="diag"></div>
+  <div id="loading">جاري التحميل...</div>
+
+  <div id="content" style="display:none;">
+    <div id="status"></div>
+    <div class="note">علّم "مقفول" على اليوم اللي الصالون فيه أجازة. صفحة الحجز بتقفل لوحدها خارج المواعيد دي، وبتفتح تاني في ميعادها.</div>
+    <div id="days"></div>
+    <button class="big" id="saveBtn">💾 حفظ كل الأيام</button>
+  </div>
+  <div id="toast"></div>
+
+  <script>
+    const SUPABASE_URL = "https://ynqnyuidxpjfcvcgexoi.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlucW55dWlkeHBqZmN2Y2dleG9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzNTUyMDAsImV4cCI6MjEwNTkzMTIwMH0.SRsgeU3_JSm-INcEYC-p5OzbwVoxZHWHFzaZnwa5UjY";
+
+    // الترتيب: السبت أولًا (0 = الأحد ... 6 = السبت)
+    const ORDER = [6, 0, 1, 2, 3, 4, 5];
+    const NAMES = { 0: 'الأحد', 1: 'الاثنين', 2: 'الثلاثاء', 3: 'الأربعاء', 4: 'الخميس', 5: 'الجمعة', 6: 'السبت' };
+
+    const $ = (id) => document.getElementById(id);
+    function el(tag, cls, text) {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text !== undefined) e.textContent = text;
+      return e;
+    }
+    let db = null;
+    const rowsUI = {};
+
+    function toast(t) {
+      const x = $('toast');
+      x.textContent = t; x.style.display = 'block';
+      setTimeout(() => { x.style.display = 'none'; }, 2000);
+    }
+    function hhmm(t) { return String(t || '09:00').slice(0, 5); }
+    function fmt(t) {
+      const p = String(t).split(':');
+      let h = +p[0]; const m = p[1];
+      const ap = h >= 12 ? 'م' : 'ص';
+      h = h % 12 || 12;
+      return h + (m && m !== '00' ? ':' + m : '') + ' ' + ap;
+    }
+
+    async function showStatus() {
+      const r = await db.rpc('shop_status');
+      const box = $('status');
+      if (r.error || !r.data) { box.textContent = ''; return; }
+      const s = r.data;
+      if (s.open) { box.className = 'open'; box.textContent = '🟢 الصالون مفتوح دلوقتي'; }
+      else { box.className = 'closed'; box.textContent = '🔴 الصالون مقفول دلوقتي'; }
+    }
+
+    function applyOff(d) {
+      const ui = rowsUI[d];
+      ui.card.className = 'day' + (ui.chk.checked ? ' off' : '');
+      ui.open.disabled = ui.chk.checked;
+      ui.close.disabled = ui.chk.checked;
+    }
+
+    async function load() {
+      const res = await db.from('shop_hours').select('*');
+      if (res.error) { showError('تحميل المواعيد: ' + res.error.message + (/shop_hours/i.test(res.error.message) ? ' — شغّل كود SQL الخاص بالمواعيد' : '')); return; }
+      const byDay = {};
+      (res.data || []).forEach((r) => { byDay[r.day_of_week] = r; });
+
+      const box = $('days');
+      box.innerHTML = '';
+      ORDER.forEach((d) => {
+        const r = byDay[d] || { is_closed: false, open_time: '09:00', close_time: '13:00' };
+        const card = el('div', 'day');
+        const dh = el('div', 'dh');
+        dh.appendChild(el('b', '', NAMES[d]));
+        const lab = el('label', 'closedchk');
+        const chk = document.createElement('input'); chk.type = 'checkbox'; chk.checked = !!r.is_closed;
+        lab.appendChild(chk); lab.appendChild(document.createTextNode('مقفول'));
+        dh.appendChild(lab);
+        card.appendChild(dh);
+
+        const times = el('div', 'times');
+        const l1 = el('label', '', 'يفتح'); const o = document.createElement('input'); o.type = 'time'; o.value = hhmm(r.open_time); l1.appendChild(o);
+        const l2 = el('label', '', 'يقفل'); const c = document.createElement('input'); c.type = 'time'; c.value = hhmm(r.close_time); l2.appendChild(c);
+        times.appendChild(l1); times.appendChild(l2);
+        card.appendChild(times);
+
+        rowsUI[d] = { card: card, chk: chk, open: o, close: c };
+        chk.onchange = () => applyOff(d);
+        applyOff(d);
+        box.appendChild(card);
+      });
+    }
+
+    async function saveAll() {
+      const payload = [];
+      for (const d of ORDER) {
+        const ui = rowsUI[d];
+        if (!ui.chk.checked && ui.open.value >= ui.close.value) {
+          alert('ميعاد القفل لازم يبقى بعد ميعاد الفتح يوم ' + NAMES[d]);
+          return;
+        }
+        payload.push({ day_of_week: d, is_closed: ui.chk.checked, open_time: ui.open.value || '09:00', close_time: ui.close.value || '13:00' });
+      }
+      const btn = $('saveBtn');
+      btn.disabled = true;
+      const r = await db.from('shop_hours').upsert(payload, { onConflict: 'day_of_week' }).select();
+      btn.disabled = false;
+      if (r.error) { showError('حفظ المواعيد: ' + r.error.message); return; }
+      if (!r.data || r.data.length === 0) { showError('ما اتحفظش، غالبًا كود SQL الخاص بالمواعيد لسه ما اتشغلش'); return; }
+      $('diag').style.display = 'none';
+      toast('تم الحفظ');
+      showStatus();
+    }
+
+    async function init() {
+      try {
+        db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const sess = await db.auth.getSession();
+        const session = sess.data && sess.data.session;
+        if (!session) { window.location.href = 'engineer-login.html'; return; }
+
+        const st = await db.from('staff').select('role').eq('email', session.user.email.toLowerCase()).maybeSingle();
+        if (st.error) { $('loading').style.display = 'none'; showError('قراءة بيانات الموظف: ' + st.error.message); return; }
+        if (!st.data || st.data.role !== 'engineer') {
+          $('loading').style.display = 'none';
+          showError('الصفحة دي للمهندس بس');
+          return;
+        }
+
+        $('saveBtn').onclick = saveAll;
+        await load();
+        await showStatus();
+        $('loading').style.display = 'none';
+        $('content').style.display = 'block';
+      } catch (err) {
+        $('loading').style.display = 'none';
+        showError('خطأ: ' + (err && err.message ? err.message : err));
+      }
+    }
+    init();
+  </script>
+</body>
+</html>
