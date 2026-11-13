@@ -1,7 +1,9 @@
 (function () {
   // كل صفحة جديدة = سطر جديد هنا
   var TOOLS = [
-    { icon: '📥', title: 'صندوق الرسائل', href: 'inbox.html', badge: 'messages' }
+    { icon: '📥', title: 'صندوق الرسائل', href: 'inbox.html', badge: 'messages' },
+    { icon: '👥', title: 'إدارة الحلاقين', href: 'barbers.html' },
+    { icon: '📊', title: 'تقارير SIS', href: 'reports.html' }
   ];
 
   var style = document.createElement('style');
