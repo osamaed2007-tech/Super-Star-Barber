@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تقارير SIS - Super Star</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, sans-serif; background: #f3f4f8; padding: 16px; color: #222; }
+    .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .top h2 { margin: 0; color: #0d1b2a; font-size: 19px; }
+    .top a { color: #0d1b2a; text-decoration: none; font-size: 15px; }
+    #diag { display: none; background: #fee2e2; color: #991b1b; border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 13px; line-height: 1.7; word-break: break-word; }
+    #loading { text-align: center; color: #666; margin-top: 40px; }
+
+    .tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+    .tabs button { flex: 1; border: none; border-radius: 8px; padding: 10px 4px; font-family: inherit; font-size: 13px; background: white; color: #0d1b2a; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+    .tabs button.on { background: #0d1b2a; color: white; }
+
+    .fsum { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px; }
+    .fcard { background: white; border-radius: 10px; padding: 12px 4px; text-align: center; box-shadow: 0 1px 5px rgba(0,0,0,0.08); }
+    .fcard span { display: block; font-size: 12px; color: #666; margin-bottom: 4px; }
+    .fcard b { font-size: 17px; color: #0d1b2a; }
+    .fcard b.neg { color: #dc2626; }
+    .fcard b.pos { color: #16a34a; }
+
+    .section { background: white; border-radius: 10px; padding: 15px; margin-bottom: 16px; box-shadow: 0 1px 5px rgba(0,0,0,0.08); }
+    .section h3 { margin: 0 0 6px; color: #0d1b2a; font-size: 15px; }
+    .row { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+    .row:last-child { border-bottom: none; }
+    .row .nm { flex: 1; }
+    .row small { color: #777; }
+    .row .v { font-weight: bold; color: #16a34a; white-space: nowrap; }
+    .empty { text-align: center; color: #888; padding: 14px 0; font-size: 14px; }
+
+    .legend { display: flex; gap: 14px; margin-top: 8px; font-size: 12px; color: #555; }
+    .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-left: 5px; vertical-align: middle; }
+    .fchart { display: flex; align-items: flex-end; gap: 6px; height: 175px; margin-top: 12px; }
+    .fday { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; min-width: 0; }
+    .fpair { display: flex; align-items: flex-end; gap: 2px; width: 100%; justify-content: center; }
+    .fcol { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; min-width: 0; }
+    .fval { font-size: 9px; color: #333; height: 12px; line-height: 12px; }
+    .fbar { width: 100%; border-radius: 3px 3px 0 0; }
+    .bar-label { font-size: 10px; color: #666; margin-top: 4px; text-align: center; }
+  </style>
+  <script>
+    function showError(msg) {
+      var d = document.getElementById('diag');
+      if (!d) return;
+      d.style.display = 'block';
+      d.textContent = msg;
+    }
+    window.addEventListener('error', function (e) { showError('خطأ في الصفحة: ' + e.message); });
+    window.addEventListener('unhandledrejection', function (e) {
+      showError('خطأ: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="top">
+    <a href="engineer-dashboard.html">→ رجوع للوحة</a>
+    <h2>📊 تقارير SIS</h2>
+  </div>
+
+  <div id="diag"></div>
+  <div id="loading">جاري التحميل...</div>
+
+  <div id="content" style="display:none;">
+    <div class="tabs">
+      <button id="t-day" class="on">آخر 7 أيام</button>
+      <button id="t-week">آخر 4 أسابيع</button>
+      <button id="t-month">آخر 6 شهور</button>
+    </div>
+
+    <div class="fsum" id="sum"></div>
+
+    <div class="section">
+      <h3>إيرادات ومصاريف</h3>
+      <div class="legend">
+        <span><i style="background:#0d1b2a"></i>إيرادات</span>
+        <span><i style="background:#dc2626"></i>مصاريف</span>
+      </div>
+      <div class="fchart" id="chart"></div>
+    </div>
+
+    <div class="section">
+      <h3>حسب الحلاق</h3>
+      <div id="byBarber"></div>
+    </div>
+
+    <div class="section">
+      <h3>حسب الخدمة</h3>
+      <div id="byService"></div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://ynqnyuidxpjfcvcgexoi.supabase.co";
+    const SUPABASE_ANON_KEY = "YOUR_ANON_KEY";
+
+    const $ = (id) => document.getElementById(id);
+    function el(tag, cls, text) {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text !== undefined) e.textContent = text;
+      return e;
+    }
+    function startOfDay(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; }
+    function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function ymd(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+    function num(v) { const n = Number(v); return isNaN(n) ? 0 : n; }
+    function money(n) { return (Math.round(n * 100) / 100) + ' ج'; }
+    function shortNum(n) { n = Math.round(n); return n >= 10000 ? Math.round(n / 1000) + 'k' : String(n); }
+
+    let db = null;
+    let mode = 'day';
+
+    function buildBuckets(m) {
+      const today = startOfDay(new Date());
+      const b = [];
+      if (m === 'day') {
+        for (let i = 6; i >= 0; i--) {
+          const s = addDays(today, -i);
+          b.push({ s: s, e: addDays(s, 1), label: s.toLocaleDateString('ar-EG', { weekday: 'short' }) });
+        }
+      } else if (m === 'week') {
+        for (let i = 3; i >= 0; i--) {
+          const e = addDays(today, 1 - i * 7);
+          const s = addDays(e, -7);
+          b.push({ s: s, e: e, label: s.toLocaleDateString('ar-EG', { day: 'numeric', month: 'numeric' }) });
+        }
+      } else {
+        for (let i = 5; i >= 0; i--) {
+          const s = new Date(today.getFullYear(), today.getMonth() - i, 1);
+          const e = new Date(today.getFullYear(), today.getMonth() - i + 1, 1);
+          b.push({ s: s, e: e, label: s.toLocaleDateString('ar-EG', { month: 'short' }) });
+        }
+      }
+      return b;
+    }
+
+    async function fetchAll(make) {
+      let all = [];
+      let from = 0;
+      while (true) {
+        const r = await make().range(from, from + 999);
+        if (r.error) return { error: r.error };
+        const d = r.data || [];
+        all = all.concat(d);
+        if (d.length < 1000) break;
+        from += 1000;
+      }
+      return { data: all };
+    }
+
+    function group(rows, keyFn) {
+      const map = {};
+      rows.forEach((r) => {
+        const k = keyFn(r) || 'غير محدد';
+        if (!map[k]) map[k] = { count: 0, total: 0 };
+        map[k].count += 1;
+        map[k].total += num(r.amount);
+      });
+      return Object.keys(map).map((k) => ({ name: k, count: map[k].count, total: map[k].total }))
+        .sort((a, b) => b.total - a.total);
+    }
+
+    function renderGroup(container, items) {
+      container.innerHTML = '';
+      if (items.length === 0) { container.appendChild(el('div', 'empty', 'مفيش بيانات')); return; }
+      items.forEach((it) => {
+        const r = el('div', 'row');
+        const nm = el('div', 'nm');
+        nm.appendChild(document.createTextNode(it.name + ' '));
+        nm.appendChild(el('small', '', '(' + it.count + ' حلاقة)'));
+        r.appendChild(nm);
+        r.appendChild(el('span', 'v', money(it.total)));
+        container.appendChild(r);
+      });
+    }
+
+    async function render() {
+      const buckets = buildBuckets(mode);
+      const from = buckets[0].s;
+      const to = buckets[buckets.length - 1].e;
+
+      const dn = await fetchAll(() => db.from('bookings').select('id,amount,service,barber_name,done_at')
+        .eq('status', 'done').gte('done_at', from.toISOString()).lt('done_at', to.toISOString()).order('id'));
+      if (dn.error) { showError('تحميل الحلاقات: ' + dn.error.message); return; }
+      const ex = await fetchAll(() => db.from('expenses').select('id,amount,spent_on')
+        .gte('spent_on', ymd(from)).lt('spent_on', ymd(to)).order('id'));
+      if (ex.error) { showError('تحميل المصاريف: ' + ex.error.message); return; }
+      $('diag').style.display = 'none';
+
+      const done = dn.data;
+      const exps = ex.data;
+      const rev = done.reduce((a, r) => a + num(r.amount), 0);
+      const exp = exps.reduce((a, r) => a + num(r.amount), 0);
+      const net = rev - exp;
+
+      const sum = $('sum');
+      sum.innerHTML = '';
+      [['إيرادات', money(rev), ''], ['مصاريف', money(exp), 'neg'],
+       ['الصافي', money(net), net >= 0 ? 'pos' : 'neg'], ['عدد الحلاقات', String(done.length), '']]
+        .forEach((row) => {
+          const c = el('div', 'fcard');
+          c.appendChild(el('span', '', row[0]));
+          c.appendChild(el('b', row[2], row[1]));
+          sum.appendChild(c);
+        });
+
+      const data = buckets.map((b) => {
+        const ks = ymd(b.s), ke = ymd(b.e);
+        return {
+          label: b.label,
+          revenue: done.filter((r) => { const t = new Date(r.done_at); return t >= b.s && t < b.e; })
+            .reduce((a, r) => a + num(r.amount), 0),
+          expense: exps.filter((r) => r.spent_on >= ks && r.spent_on < ke)
+            .reduce((a, r) => a + num(r.amount), 0)
+        };
+      });
+      const mx = Math.max.apply(null, data.map((d) => Math.max(d.revenue, d.expense)).concat([1]));
+      const ch = $('chart');
+      ch.innerHTML = '';
+      data.forEach((d) => {
+        const col = el('div', 'fday');
+        const pair = el('div', 'fpair');
+        [['revenue', '#0d1b2a'], ['expense', '#dc2626']].forEach((k) => {
+          const c = el('div', 'fcol');
+          c.appendChild(el('span', 'fval', d[k[0]] > 0 ? shortNum(d[k[0]]) : ''));
+          const bar = el('div', 'fbar');
+          bar.style.background = k[1];
+          bar.style.height = (d[k[0]] > 0 ? Math.max((d[k[0]] / mx) * 110, 3) : 0) + 'px';
+          c.appendChild(bar);
+          pair.appendChild(c);
+        });
+        col.appendChild(pair);
+        col.appendChild(el('span', 'bar-label', d.label));
+        ch.appendChild(col);
+      });
+
+      renderGroup($('byBarber'), group(done, (r) => r.barber_name));
+      renderGroup($('byService'), group(done, (r) => r.service));
+    }
+
+    function setMode(m) {
+      mode = m;
+      ['day', 'week', 'month'].forEach((k) => { $('t-' + k).className = (k === m ? 'on' : ''); });
+      render();
+    }
+
+    async function init() {
+      try {
+        if (SUPABASE_ANON_KEY.indexOf('YOUR_') === 0) {
+          $('loading').style.display = 'none';
+          showError('المفتاح لسه ما اتحطش في الكود (YOUR_ANON_KEY)');
+          return;
+        }
+        db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const sess = await db.auth.getSession();
+        const session = sess.data && sess.data.session;
+        if (!session) { window.location.href = 'engineer-login.html'; return; }
+
+        const st = await db.from('staff').select('role').eq('email', session.user.email.toLowerCase()).maybeSingle();
+        if (st.error) { $('loading').style.display = 'none'; showError('قراءة بيانات الموظف: ' + st.error.message); return; }
+        if (!st.data || st.data.role !== 'engineer') {
+          $('loading').style.display = 'none';
+          showError('الصفحة دي للمهندس بس');
+          return;
+        }
+
+        $('t-day').onclick = () => setMode('day');
+        $('t-week').onclick = () => setMode('week');
+        $('t-month').onclick = () => setMode('month');
+
+        await render();
+        $('loading').style.display = 'none';
+        $('content').style.display = 'block';
+      } catch (err) {
+        $('loading').style.display = 'none';
+        showError('خطأ: ' + (err && err.message ? err.message : err));
+      }
+    }
+    init();
+  </script>
+</body>
+</html>
