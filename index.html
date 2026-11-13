@@ -106,7 +106,7 @@
         const m = String(error.message || '');
         let txt = "حصل خطأ، حاول تاني";
         if (m.indexOf('DUPLICATE_ACTIVE') !== -1) txt = "عندك حجز شغال النهاردة بالفعل. لما يخلص أو يتلغي تقدر تحجز تاني.";
-        else if (m.indexOf('QUEUE_FULL') !== -1) txt = "الطابور اكتمل النهاردة، الحجز مقفول لحد بكرة 🤍 ";
+        else if (m.indexOf('QUEUE_FULL') !== -1) txt = "الطابور اكتمل النهاردة، الحجز مقفول لحد بكرة 🙏";
         else if (m.indexOf('BAD_PHONE') !== -1) txt = "رقم التليفون مش صحيح، اكتب الرقم كامل (11 رقم)";
         messageEl.style.color = "red";
         messageEl.textContent = txt;
