@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>قواعد الحجز - Super Star</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, sans-serif; background: #f3f4f8; padding: 16px; color: #222; }
+    .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .top h2 { margin: 0; color: #0d1b2a; font-size: 19px; }
+    .top a { color: #0d1b2a; text-decoration: none; font-size: 15px; }
+    #diag { display: none; background: #fee2e2; color: #991b1b; border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 13px; line-height: 1.7; word-break: break-word; }
+    #loading { text-align: center; color: #666; margin-top: 40px; }
+    .card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 5px rgba(0,0,0,0.08); }
+    .card h3 { margin: 0 0 6px; color: #0d1b2a; font-size: 16px; }
+    .card p { margin: 0 0 12px; color: #666; font-size: 13px; line-height: 1.7; }
+    .today { text-align: center; font-size: 17px; font-weight: bold; color: #0d1b2a; }
+    .today small { display: block; color: #666; font-weight: normal; font-size: 12px; margin-top: 4px; }
+    .today.full { color: #991b1b; }
+    input[type=number] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-family: inherit; font-size: 16px; text-align: right; }
+    .chk { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+    .chk input { width: 22px; height: 22px; }
+    .big { display: block; width: 100%; border: none; border-radius: 8px; padding: 13px; font-size: 16px; font-family: inherit; background: #0d1b2a; color: white; }
+    .big:disabled { opacity: 0.5; }
+    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #0d1b2a; color: white; padding: 10px 18px; border-radius: 20px; font-size: 14px; display: none; }
+  </style>
+  <script>
+    function showError(msg) {
+      var d = document.getElementById('diag');
+      if (!d) return;
+      d.style.display = 'block';
+      d.textContent = msg;
+    }
+    window.addEventListener('error', function (e) { showError('خطأ في الصفحة: ' + e.message); });
+    window.addEventListener('unhandledrejection', function (e) {
+      showError('خطأ: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="top">
+    <a href="engineer-dashboard.html">→ رجوع للوحة</a>
+    <h2>🛡️ قواعد الحجز</h2>
+  </div>
+
+  <div id="diag"></div>
+  <div id="loading">جاري التحميل...</div>
+
+  <div id="content" style="display:none;">
+    <div class="card">
+      <div class="today" id="today"></div>
+    </div>
+
+    <div class="card">
+      <h3>الحد الأقصى للحجوزات في اليوم</h3>
+      <p>لما العدد ده يكتمل، صفحة الحجز بترفض أي حجز جديد لحد بكرة. الحجوزات الملغية مش بتتحسب.</p>
+      <input type="number" id="maxPerDay" inputmode="numeric" min="1">
+    </div>
+
+    <div class="card">
+      <label class="chk">
+        <input type="checkbox" id="onePerPhone">
+        حجز واحد شغال لكل رقم تليفون
+      </label>
+      <p style="margin-top:10px;">الرقم اللي عنده حجز "في الانتظار" النهاردة مش بيقدر يحجز تاني لحد ما يتسجل "تمت" أو يتلغي.</p>
+    </div>
+
+    <button class="big" id="saveBtn">💾 حفظ</button>
+  </div>
+  <div id="toast"></div>
+
+  <script>
+    const SUPABASE_URL = "https://ynqnyuidxpjfcvcgexoi.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlucW55dWlkeHBqZmN2Y2dleG9pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzNTUyMDAsImV4cCI6MjEwNTkzMTIwMH0.SRsgeU3_JSm-INcEYC-p5OzbwVoxZHWHFzaZnwa5UjY";
+
+    const $ = (id) => document.getElementById(id);
+    let db = null;
+
+    function toast(t) {
+      const x = $('toast');
+      x.textContent = t; x.style.display = 'block';
+      setTimeout(() => { x.style.display = 'none'; }, 2000);
+    }
+    function sqlHint(m) { return /booking_rules|booking_status/i.test(m) ? ' — شغّل كود SQL الخاص بقواعد الحجز' : ''; }
+
+    async function showToday() {
+      const r = await db.rpc('booking_status');
+      const box = $('today');
+      if (r.error || !r.data) { box.textContent = ''; return; }
+      box.className = 'today' + (r.data.full ? ' full' : '');
+      box.textContent = 'حجوزات النهاردة: ' + r.data.count + ' من ' + r.data.max;
+      const small = document.createElement('small');
+      small.textContent = r.data.full ? 'الطابور مكتمل، الحجز مقفول' : 'الحجز مفتوح';
+      box.appendChild(small);
+    }
+
+    async function load() {
+      const res = await db.from('booking_rules').select('*').eq('id', 1).maybeSingle();
+      if (res.error) { showError('تحميل القواعد: ' + res.error.message + sqlHint(res.error.message)); return false; }
+      const r = res.data || { max_per_day: 25, one_active_per_phone: true };
+      $('maxPerDay').value = r.max_per_day;
+      $('onePerPhone').checked = !!r.one_active_per_phone;
+      await showToday();
+      return true;
+    }
+
+    async function save() {
+      const max = parseInt($('maxPerDay').value, 10);
+      if (!(max >= 1)) { alert('اكتب رقم صحيح (1 أو أكتر)'); return; }
+      const btn = $('saveBtn');
+      btn.disabled = true;
+      const r = await db.from('booking_rules')
+        .upsert({ id: 1, max_per_day: max, one_active_per_phone: $('onePerPhone').checked }, { onConflict: 'id' })
+        .select();
+      btn.disabled = false;
+      if (r.error) { showError('الحفظ: ' + r.error.message + sqlHint(r.error.message)); return; }
+      if (!r.data || r.data.length === 0) { showError('ما اتحفظش، غالبًا كود SQL لسه ما اتشغلش'); return; }
+      $('diag').style.display = 'none';
+      toast('تم الحفظ');
+      showToday();
+    }
+
+    async function init() {
+      try {
+        db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const sess = await db.auth.getSession();
+        const session = sess.data && sess.data.session;
+        if (!session) { window.location.href = 'engineer-login.html'; return; }
+
+        const st = await db.from('staff').select('role').eq('email', session.user.email.toLowerCase()).maybeSingle();
+        if (st.error) { $('loading').style.display = 'none'; showError('قراءة بيانات الموظف: ' + st.error.message); return; }
+        if (!st.data || st.data.role !== 'engineer') {
+          $('loading').style.display = 'none';
+          showError('الصفحة دي للمهندس بس');
+          return;
+        }
+
+        $('saveBtn').onclick = save;
+        await load();
+        $('loading').style.display = 'none';
+        $('content').style.display = 'block';
+      } catch (err) {
+        $('loading').style.display = 'none';
+        showError('خطأ: ' + (err && err.message ? err.message : err));
+      }
+    }
+    init();
+  </script>
+</body>
+</html>
