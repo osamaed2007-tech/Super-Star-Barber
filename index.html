@@ -82,6 +82,12 @@
 
       const name = document.getElementById('name').value.trim();
       const phone = document.getElementById('phone').value.trim();
+      const digits = phone.replace(/[^0-9]/g, '');
+      if (digits.length < 10 || digits.length > 15) {
+        messageEl.style.color = "red";
+        messageEl.textContent = "رقم التليفون مش صحيح، اكتب الرقم كامل (11 رقم)";
+        return;
+      }
       const now = new Date();
       const code = generateCode();
 
@@ -97,8 +103,13 @@
         .insert([{ name: name, phone: phone, code: code }]);
 
       if (error) {
+        const m = String(error.message || '');
+        let txt = "حصل خطأ، حاول تاني";
+        if (m.indexOf('DUPLICATE_ACTIVE') !== -1) txt = "عندك حجز شغال النهاردة بالفعل. لما يخلص أو يتلغي تقدر تحجز تاني.";
+        else if (m.indexOf('QUEUE_FULL') !== -1) txt = "الطابور اكتمل النهاردة، الحجز مقفول لحد بكرة 🤍 ";
+        else if (m.indexOf('BAD_PHONE') !== -1) txt = "رقم التليفون مش صحيح، اكتب الرقم كامل (11 رقم)";
         messageEl.style.color = "red";
-        messageEl.textContent = "حصل خطأ، حاول تاني";
+        messageEl.textContent = txt;
         submitBtn.disabled = false;
         submitBtn.textContent = "تأكيد الحجز";
       } else {
